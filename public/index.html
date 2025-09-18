@@ -3,50 +3,73 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hamburguer CEC - Tempo Real</title>
+    <title>Hamburguer CEC</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="container">
-      <h1>🍔 Sistema Hamburgueria</h1>
-      <div id="loginDiv">
+      <div class="header">
+        <h1>🍔 Sistema Hamburgueria</h1>
+        <p>Gerenciamento completo de pedidos</p>
+      </div>
+
+      <div id="loginPanel">
         <h2>Login</h2>
         <input type="text" id="username" placeholder="Usuário" />
         <input type="password" id="password" placeholder="Senha" />
-        <button id="loginBtn">Entrar</button>
+        <button id="btnLogin">Entrar</button>
         <p id="loginError" style="color: red"></p>
       </div>
 
-      <div id="appDiv" style="display: none">
-        <h2>Registrar Pedido</h2>
-        <form id="pedidoForm">
-          <input
-            type="text"
-            id="cliente"
-            placeholder="Nome do Cliente"
-            required
-          />
-          <input
-            type="number"
-            id="combos"
-            placeholder="Quantidade de Combos"
-            min="1"
-            required
-          />
-          <input
-            type="text"
-            id="refrigerante"
-            placeholder="Refrigerante"
-            required
-          />
-          <textarea id="observacoes" placeholder="Observações"></textarea>
-          <button type="submit">Registrar Pedido</button>
-        </form>
+      <div id="mainPanel" style="display: none">
+        <button id="btnLogout">Sair</button>
+        <div class="user-selector">
+          <button class="user-btn active" onclick="switchPanel('atendente')">
+            📝 Atendente
+          </button>
+          <button class="user-btn" onclick="switchPanel('cozinha')">
+            👨‍🍳 Cozinha
+          </button>
+          <button class="user-btn" onclick="switchPanel('despachante')">
+            🚚 Despachante
+          </button>
+        </div>
 
-        <h2>Pedidos</h2>
-        <div id="pedidosContainer"></div>
+        <div id="atendente" class="panel active">
+          <h2>📝 Painel do Atendente</h2>
+          <form id="pedidoForm">
+            <input
+              type="text"
+              id="nomeCliente"
+              placeholder="Nome do cliente"
+              required
+            />
+            <input
+              type="number"
+              id="quantidadeCombos"
+              placeholder="Quantidade de combos"
+              min="1"
+              required
+            />
+            <select id="refrigerante">
+              <option value="Coca-Cola">Coca-Cola</option>
+              <option value="Coca-Zero">Coca-Zero</option>
+              <option value="Guarana">Guaraná</option>
+            </select>
+            <textarea id="observacoes" placeholder="Observações"></textarea>
+            <button type="submit">Registrar Pedido</button>
+          </form>
+        </div>
 
-        <button id="logoutBtn">Deslogar</button>
+        <div id="cozinha" class="panel">
+          <h2>👨‍🍳 Painel da Cozinha</h2>
+          <div id="pedidosCozinha"></div>
+        </div>
+
+        <div id="despachante" class="panel">
+          <h2>🚚 Painel do Despachante</h2>
+          <div id="pedidosDespachante"></div>
+        </div>
       </div>
     </div>
 
