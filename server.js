@@ -2,14 +2,16 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = "hamburguer-cec"; // usar variável de ambiente em produção
+const SECRET_KEY = "hamburguer-cec";
 
 app.use(bodyParser.json());
 app.use(cors());
-app.use(express.static("public")); // serve arquivos front-end
+app.use(express.static("public"));
 
 // Usuários e roles
 const users = [
@@ -18,11 +20,9 @@ const users = [
   { username: "despachante1", password: "123", role: "despachante" },
 ];
 
-// Pedidos em memória (pode ser trocado por DB leve como SQLite)
+// Pedidos em memória
 let pedidos = [];
 let proximoNumero = 1;
-
-// ----- ROTAS -----
 
 // Login
 app.post("/login", (req, res) => {
@@ -46,7 +46,6 @@ function autenticar(req, res, next) {
   const authHeader = req.headers["authorization"];
   if (!authHeader)
     return res.status(401).json({ error: "Token não fornecido" });
-
   const token = authHeader.split(" ")[1];
   jwt.verify(token, SECRET_KEY, (err, user) => {
     if (err) return res.status(403).json({ error: "Token inválido" });
@@ -55,46 +54,33 @@ function autenticar(req, res, next) {
   });
 }
 
-// Criar pedido (somente atendente)
-app.post("/pedidos", autenticar, (req, res) => {
-  if (req.user.role !== "atendente")
-    return res.status(403).json({ error: "Permissão negada" });
+// HTTP + Socket.IO
+const httpServer = http.createServer(app);
+const io = new Server(httpServer);
 
-  const { cliente, combos, refrigerante, observacoes } = req.body;
-  const pedido = {
-    numero: proximoNumero++,
-    cliente,
-    combos,
-    refrigerante,
-    observacoes,
-    status: "pendente",
-    criadoEm: new Date().toLocaleString(),
-  };
-  pedidos.push(pedido);
-  res.json({ message: "Pedido criado com sucesso!", pedido });
-});
+io.on("connection", (socket) => {
+  console.log("Novo usuário conectado");
+  socket.emit("pedidos-atualizados", pedidos);
 
-// Atualizar status do pedido (somente cozinha)
-app.put("/pedidos/:numero", autenticar, (req, res) => {
-  if (req.user.role !== "cozinha")
-    return res.status(403).json({ error: "Permissão negada" });
+  socket.on("criar-pedido", (pedido) => {
+    pedido.numero = proximoNumero++;
+    pedido.status = "pendente";
+    pedido.criadoEm = new Date().toLocaleString();
+    pedidos.push(pedido);
+    io.emit("pedidos-atualizados", pedidos);
+  });
 
-  const { numero } = req.params;
-  const { status } = req.body;
-  const pedido = pedidos.find((p) => p.numero == numero);
-  if (!pedido) return res.status(404).json({ error: "Pedido não encontrado" });
+  socket.on("atualizar-status", ({ numero, status }) => {
+    const p = pedidos.find((p) => p.numero == numero);
+    if (p) {
+      p.status = status;
+      p.atualizadoEm = new Date().toLocaleString();
+      io.emit("pedidos-atualizados", pedidos);
+    }
+  });
 
-  pedido.status = status;
-  pedido.atualizadoEm = new Date().toLocaleString();
-  res.json({ message: "Status atualizado!", pedido });
-});
-
-// Listar pedidos (todos podem ver)
-app.get("/pedidos", autenticar, (req, res) => {
-  res.json(pedidos);
+  socket.on("disconnect", () => console.log("Usuário desconectado"));
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+httpServer.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

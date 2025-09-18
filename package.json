@@ -7,9 +7,21 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "jsonwebtoken": "^9.0.0",
     "body-parser": "^1.20.2",
-    "cors": "^2.8.5"
-  }
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.0",
+    "socket.io": "^4.8.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Maximiano11/app-hamburgueria.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Maximiano11/app-hamburgueria/issues"
+  },
+  "homepage": "https://github.com/Maximiano11/app-hamburgueria#readme"
 }

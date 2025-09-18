@@ -7,116 +7,77 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="container">
+    <div class="login-container">
+      <h2>Login</h2>
+      <form id="loginForm">
+        <input type="text" id="username" placeholder="Usuário" required />
+        <input type="password" id="password" placeholder="Senha" required />
+        <button type="submit">Entrar</button>
+      </form>
+      <div id="loginError" class="error"></div>
+    </div>
+
+    <div class="container" style="display: none">
       <div class="header">
         <h1>🍔 Sistema Hamburgueria</h1>
-        <p>Gerenciamento completo de pedidos</p>
       </div>
 
-      <!-- TELA DE LOGIN -->
-      <div id="loginScreen" class="panel active">
-        <h2>🔑 Faça login</h2>
-        <div class="user-selector">
-          <button class="user-btn" onclick="loginUsuario('atendente')">
-            📝 Atendente
-          </button>
-          <button class="user-btn" onclick="loginUsuario('cozinha')">
-            👨‍🍳 Cozinha
-          </button>
-          <button class="user-btn" onclick="loginUsuario('despachante')">
-            🚚 Despachante
-          </button>
-        </div>
+      <div class="user-selector">
+        <button class="user-btn active" onclick="switchPanel('atendente')">
+          📝 Atendente
+        </button>
+        <button class="user-btn" onclick="switchPanel('cozinha')">
+          👨‍🍳 Cozinha
+        </button>
+        <button class="user-btn" onclick="switchPanel('despachante')">
+          🚚 Despachante
+        </button>
+        <button class="user-btn" onclick="logout()">🔓 Sair</button>
       </div>
 
       <!-- PAINEL ATENDENTE -->
-      <div id="atendente" class="panel">
+      <div id="atendente" class="panel active">
         <h2>📝 Painel do Atendente</h2>
-        <button class="btn" onclick="logoutUsuario()">Sair</button>
-
-        <div class="stats">
-          <div class="stat-card">
-            <div class="stat-number" id="totalPedidos">0</div>
-            <div class="stat-label">Total de Pedidos</div>
-          </div>
-        </div>
-
-        <form id="pedidoForm" onsubmit="criarPedido(event)">
-          <div class="form-group">
-            <label for="nomeCliente">Nome do Cliente:</label>
-            <input
-              type="text"
-              id="nomeCliente"
-              required
-              placeholder="Digite o nome do cliente"
-            />
-          </div>
-          <div class="form-group">
-            <label for="quantidadeCombos">Quantidade de Combos:</label>
-            <input
-              type="number"
-              id="quantidadeCombos"
-              min="1"
-              required
-              placeholder="Ex: 2"
-            />
-          </div>
-          <div class="form-group">
-            <label for="refrigerante">Refrigerante:</label>
-            <select id="refrigerante" required>
-              <option value="">Selecione o refrigerante</option>
-              <option value="Coca-Cola">Coca-Cola</option>
-              <option value="Pepsi">Coca-Cola Zero</option>
-              <option value="Guaraná">Guaraná</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="observacoes">Observações:</label>
-            <textarea
-              id="observacoes"
-              rows="3"
-              placeholder="Ex: Sem cebola, hambúrguer mal passado, etc."
-            ></textarea>
-          </div>
-          <button type="submit" class="btn">Registrar Pedido</button>
+        <form id="pedidoForm">
+          <input
+            type="text"
+            id="cliente"
+            placeholder="Nome do cliente"
+            required
+          />
+          <input
+            type="number"
+            id="combos"
+            min="1"
+            placeholder="Quantidade de combos"
+            required
+          />
+          <select id="refrigerante" required>
+            <option value="">Selecione o refrigerante</option>
+            <option value="Coca-Cola">Coca-Cola</option>
+            <option value="Pepsi">Pepsi</option>
+            <option value="Guaraná">Guaraná</option>
+          </select>
+          <textarea id="observacoes" placeholder="Observações"></textarea>
+          <button type="submit">Registrar Pedido</button>
         </form>
+        <div id="pedidosAtendente" class="orders-grid"></div>
       </div>
 
       <!-- PAINEL COZINHA -->
       <div id="cozinha" class="panel">
         <h2>👨‍🍳 Painel da Cozinha</h2>
-        <button class="btn" onclick="logoutUsuario()">Sair</button>
-        <div class="stats">
-          <div class="stat-card">
-            <div class="stat-number" id="pedidosPendentes">0</div>
-            <div class="stat-label">Pendentes</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="pedidosPreparo">0</div>
-            <div class="stat-label">Em Preparo</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="pedidosConcluidos">0</div>
-            <div class="stat-label">Concluídos</div>
-          </div>
-        </div>
         <div id="pedidosCozinha" class="orders-grid"></div>
       </div>
 
       <!-- PAINEL DESPACHANTE -->
       <div id="despachante" class="panel">
         <h2>🚚 Painel do Despachante</h2>
-        <button class="btn" onclick="logoutUsuario()">Sair</button>
-        <div class="stats">
-          <div class="stat-card">
-            <div class="stat-number" id="prontoEntrega">0</div>
-            <div class="stat-label">Prontos para Entrega</div>
-          </div>
-        </div>
         <div id="pedidosDespachante" class="orders-grid"></div>
       </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
