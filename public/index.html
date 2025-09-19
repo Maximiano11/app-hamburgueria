@@ -3,42 +3,58 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hamburgueria RealTime</title>
+    <title>Hamburgueria</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   </head>
   <body>
-    <div id="loginDiv">
-      <h1>Bem-vindo!</h1>
-      <input type="text" id="username" placeholder="Usuário" />
-      <input type="password" id="password" placeholder="Senha" />
-      <button id="loginBtn">Login</button>
-      <p id="loginError"></p>
-    </div>
+    <div class="container">
+      <h1>Hamburgueria Online</h1>
 
-    <div id="appDiv" class="hidden">
-      <button id="logoutBtn">Sair</button>
-      <h2 id="roleTitle"></h2>
+      <div id="loginPanel" class="panel">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Usuário" />
+        <input type="password" id="password" placeholder="Senha" />
+        <button id="loginBtn">Entrar</button>
+        <div id="loginError" class="error"></div>
+      </div>
 
-      <div id="atendentePanel" class="hidden">
-        <h3>Registrar Pedido</h3>
-        <input type="text" id="cliente" placeholder="Nome do Cliente" />
-        <input type="number" id="quantidade" min="1" value="1" />
+      <div id="welcomePanel" class="panel hidden">
+        <h2>Bem-vindo, <span id="userRole"></span></h2>
+        <button id="logoutBtn">Sair</button>
+      </div>
+
+      <!-- Atendente -->
+      <div id="atendentePanel" class="panel hidden">
+        <h2>Registrar Pedido</h2>
+        <input type="text" id="cliente" placeholder="Nome do cliente" />
+        <input
+          type="number"
+          id="combos"
+          placeholder="Quantidade de combos"
+          min="1"
+          max="10"
+        />
         <div id="refrigerantesContainer"></div>
         <textarea id="observacoes" placeholder="Observações"></textarea>
         <button id="criarPedidoBtn">Criar Pedido</button>
+
+        <h3>Pedidos em Andamento</h3>
+        <div id="pedidosList"></div>
       </div>
 
-      <div id="cozinhaPanel" class="hidden">
-        <h3>Pedidos Recebidos</h3>
+      <!-- Cozinha -->
+      <div id="cozinhaPanel" class="panel hidden">
+        <h2>Pedidos Recebidos</h2>
         <div id="pedidosRecebidos"></div>
-        <h3>Pedidos em Preparo</h3>
-        <div id="pedidosAndamento"></div>
+        <h2>Pedidos em Preparo</h2>
+        <div id="pedidosPreparo"></div>
       </div>
 
-      <div id="despachantePanel" class="hidden">
-        <h3>Pedidos Prontos</h3>
-        <div id="pedidosDespacho"></div>
+      <!-- Despachante -->
+      <div id="despachantePanel" class="panel hidden">
+        <h2>Pedidos Prontos</h2>
+        <div id="pedidosProntos"></div>
       </div>
     </div>
 
