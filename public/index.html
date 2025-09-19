@@ -3,40 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistema de Pedidos - Hamburgueria</title>
+    <title>App Hamburgueria</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="loginPanel">
+    <div id="login-panel" class="panel">
       <h2>Login</h2>
       <input type="text" id="username" placeholder="Usuário" />
       <input type="password" id="password" placeholder="Senha" />
       <button id="loginBtn">Entrar</button>
-      <p id="loginError"></p>
+      <div id="login-error" class="error"></div>
     </div>
 
-    <div id="mainPanel" class="hidden">
-      <h2>Sistema de Pedidos</h2>
-      <p>Usuário: <span id="userRole"></span></p>
-      <button id="logoutBtn">Sair</button>
+    <div id="app-panel" class="panel hidden">
+      <h2>Hamburgueria - <span id="role-name"></span></h2>
+      <button id="logoutBtn" class="logout">Sair</button>
 
-      <div id="atendentePanel" class="hidden">
-        <h3>Registrar Pedido</h3>
-        <input type="text" id="cliente" placeholder="Nome do cliente" />
-        <input type="number" id="numCombos" min="1" value="1" />
-        <div id="refrigerantesContainer"></div>
+      <div id="atendente-panel" class="hidden">
+        <h3>Novo Pedido</h3>
+        <input type="text" id="cliente" placeholder="Nome do Cliente" />
+        <input
+          type="number"
+          id="numCombos"
+          placeholder="Quantidade de Combos"
+          min="1"
+        />
+        <div id="combos-container"></div>
         <textarea id="observacoes" placeholder="Observações"></textarea>
         <button id="addPedidoBtn">Adicionar Pedido</button>
+        <div id="pedido-msg" class="success"></div>
       </div>
 
-      <div id="cozinhaPanel" class="hidden">
+      <div id="cozinha-panel" class="hidden">
         <h3>Pedidos para Cozinha</h3>
-        <div id="pedidosCozinha"></div>
+        <div id="pedidos-cozinha"></div>
       </div>
 
-      <div id="despachantePanel" class="hidden">
-        <h3>Pedidos para Despachante</h3>
-        <div id="pedidosDespachante"></div>
+      <div id="despachante-panel" class="hidden">
+        <h3>Pedidos para Despacho</h3>
+        <div id="pedidos-despachante"></div>
       </div>
     </div>
 
