@@ -1,40 +1,37 @@
 body {
   font-family: Arial, sans-serif;
-  background: #f5f5f5;
+  background: #f0f2f5;
   margin: 0;
   padding: 0;
 }
-
-.panel {
-  max-width: 800px;
-  margin: 50px auto;
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
 .hidden {
   display: none;
 }
 
+#loginDiv,
+#appDiv {
+  max-width: 500px;
+  margin: 50px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 input,
 textarea,
-select {
+button {
   width: 100%;
-  padding: 8px;
-  margin: 5px 0;
-  border-radius: 5px;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 6px;
   border: 1px solid #ccc;
 }
 
 button {
-  padding: 10px 15px;
-  margin-top: 10px;
   background: #ff6b6b;
-  border: none;
-  border-radius: 5px;
   color: white;
+  border: none;
   cursor: pointer;
 }
 
@@ -42,29 +39,8 @@ button:hover {
   background: #ff4757;
 }
 
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
+h1,
+h2,
 h3 {
-  margin-top: 20px;
-  margin-bottom: 10px;
-}
-
-.pedido-card {
-  background: #f0f0f0;
-  padding: 10px;
-  margin: 5px 0;
-  border-radius: 5px;
-}
-
-.pedido-card button {
-  margin-right: 5px;
-}
-
-.error {
-  color: red;
-  margin-top: 10px;
+  text-align: center;
 }
