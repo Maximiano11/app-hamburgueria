@@ -3,49 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>App Hamburgueria</title>
+    <title>Sistema de Pedidos - Hamburgueria</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   </head>
   <body>
-    <div id="login-panel">
+    <div id="loginPanel">
       <h2>Login</h2>
       <input type="text" id="username" placeholder="Usuário" />
       <input type="password" id="password" placeholder="Senha" />
-      <button id="login-btn">Entrar</button>
-      <p id="login-error" class="error"></p>
+      <button id="loginBtn">Entrar</button>
+      <p id="loginError"></p>
     </div>
 
-    <div id="app-panel" style="display: none">
-      <h2>Bem-vindo, <span id="user-role"></span></h2>
-      <button id="logout-btn">Sair</button>
+    <div id="mainPanel" class="hidden">
+      <h2>Sistema de Pedidos</h2>
+      <p>Usuário: <span id="userRole"></span></p>
+      <button id="logoutBtn">Sair</button>
 
-      <div id="atendente-panel" class="panel" style="display: none">
-        <h3>Criar Pedido</h3>
+      <div id="atendentePanel" class="hidden">
+        <h3>Registrar Pedido</h3>
         <input type="text" id="cliente" placeholder="Nome do cliente" />
-        <input
-          type="number"
-          id="num-combos"
-          placeholder="Quantidade de combos"
-          min="1"
-        />
-        <div id="combos-container"></div>
-        <button id="criar-pedido-btn">Registrar Pedido</button>
+        <input type="number" id="numCombos" min="1" value="1" />
+        <div id="refrigerantesContainer"></div>
+        <textarea id="observacoes" placeholder="Observações"></textarea>
+        <button id="addPedidoBtn">Adicionar Pedido</button>
       </div>
 
-      <div id="cozinha-panel" class="panel" style="display: none">
-        <h3>Pedidos Recebidos</h3>
-        <div id="pedidos-cozinha"></div>
+      <div id="cozinhaPanel" class="hidden">
+        <h3>Pedidos para Cozinha</h3>
+        <div id="pedidosCozinha"></div>
       </div>
 
-      <div id="despachante-panel" class="panel" style="display: none">
-        <h3>Pedidos Prontos</h3>
-        <div id="pedidos-despachante"></div>
-      </div>
-
-      <div id="admin-panel" class="panel" style="display: none">
-        <h3>Admin Painel</h3>
-        <div id="pedidos-admin"></div>
+      <div id="despachantePanel" class="hidden">
+        <h3>Pedidos para Despachante</h3>
+        <div id="pedidosDespachante"></div>
       </div>
     </div>
 
