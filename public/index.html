@@ -3,60 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hamburgueria</title>
+    <title>Hamburgueria - Sistema</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
   </head>
   <body>
-    <div class="container">
-      <!-- LOGIN -->
-      <div id="login-panel" class="panel">
-        <h2>Login</h2>
-        <input type="text" id="username" placeholder="Usuário" />
-        <input type="password" id="password" placeholder="Senha" />
-        <button id="login-btn">Entrar</button>
-        <p id="login-error" class="error"></p>
+    <div id="login-panel" class="panel">
+      <h2>Login</h2>
+      <input type="text" id="username" placeholder="Usuário" />
+      <input type="password" id="password" placeholder="Senha" />
+      <button id="login-btn">Entrar</button>
+      <p id="login-error" class="error"></p>
+    </div>
+
+    <div id="main-panel" class="panel hidden">
+      <div class="header">
+        <h2 id="welcome-msg">Bem-vindo</h2>
+        <button id="logout-btn">Sair</button>
       </div>
 
-      <!-- PAINEL PRINCIPAL -->
-      <div id="main-panel" class="panel hidden">
-        <div class="top-bar">
-          <h2>Bem-vindo, <span id="user-role"></span></h2>
-          <button id="logout-btn">Sair</button>
-        </div>
+      <!-- Painel atendente -->
+      <div id="atendente-panel" class="role-panel hidden">
+        <h3>Registrar Pedido</h3>
+        <input type="text" id="cliente" placeholder="Nome do Cliente" />
+        <input type="number" id="combos" min="1" max="10" value="1" />
+        <div id="refrigerantes-container"></div>
+        <textarea id="observacoes" placeholder="Observações"></textarea>
+        <button id="criar-pedido-btn">Registrar Pedido</button>
 
-        <!-- ATENDENTE -->
-        <div id="atendente-panel" class="role-panel hidden">
-          <h3>Criar Pedido</h3>
-          <input type="text" id="cliente" placeholder="Nome do cliente" />
-          <input
-            type="number"
-            id="combos"
-            placeholder="Qtd de combos"
-            min="1"
-            value="1"
-          />
-          <div id="refrigerantes-container"></div>
-          <button id="criar-pedido-btn">Registrar Pedido</button>
-        </div>
+        <h3>Pedidos em Andamento</h3>
+        <div id="atendente-orders" class="orders-container"></div>
+      </div>
 
-        <!-- COZINHA -->
-        <div id="cozinha-panel" class="role-panel hidden">
-          <h3>Pedidos em preparo</h3>
-          <div id="cozinha-pedidos"></div>
-        </div>
+      <!-- Painel cozinha -->
+      <div id="cozinha-panel" class="role-panel hidden">
+        <h3>Pedidos Recebidos</h3>
+        <div id="cozinha-pendentes" class="orders-container"></div>
 
-        <!-- DESPACHANTE -->
-        <div id="despachante-panel" class="role-panel hidden">
-          <h3>Pedidos para entregar</h3>
-          <div id="despachante-pedidos"></div>
-        </div>
+        <h3>Pedidos em Preparo</h3>
+        <div id="cozinha-preparo" class="orders-container"></div>
+      </div>
 
-        <!-- ADMIN -->
-        <div id="admin-panel" class="role-panel hidden">
-          <h3>Todos os pedidos (Admin)</h3>
-          <div id="admin-pedidos"></div>
-        </div>
+      <!-- Painel despachante -->
+      <div id="despachante-panel" class="role-panel hidden">
+        <h3>Pedidos Prontos para Entrega</h3>
+        <div id="despachante-orders" class="orders-container"></div>
+      </div>
+
+      <!-- Painel admin -->
+      <div id="admin-panel" class="role-panel hidden">
+        <h3>Todos os Pedidos</h3>
+        <div id="admin-orders" class="orders-container"></div>
       </div>
     </div>
 

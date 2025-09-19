@@ -1,167 +1,178 @@
-const socket = io("https://hamburgueria-mezu.onrender.com");
+const socket = io();
+let token = "";
+let role = "";
 
-// ----- SUPABASE -----
-const SUPABASE_URL = "https://krybnbkjuwhpjhykfjeb.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyeWJuYmtqdXdocGpoeWtmamViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyMTk2NDIsImV4cCI6MjA3Mzc5NTY0Mn0.1bGQXR4TOavZrqXMlsDCyh7q25tQ1bN81kXqseuoqRo";
-
-// ----- ELEMENTOS -----
 const loginPanel = document.getElementById("login-panel");
 const mainPanel = document.getElementById("main-panel");
 const loginBtn = document.getElementById("login-btn");
 const logoutBtn = document.getElementById("logout-btn");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
 const loginError = document.getElementById("login-error");
-const userRoleSpan = document.getElementById("user-role");
+const welcomeMsg = document.getElementById("welcome-msg");
 
+// Painéis por role
 const atendentePanel = document.getElementById("atendente-panel");
 const cozinhaPanel = document.getElementById("cozinha-panel");
 const despachantePanel = document.getElementById("despachante-panel");
 const adminPanel = document.getElementById("admin-panel");
 
+// Atendente inputs
 const clienteInput = document.getElementById("cliente");
 const combosInput = document.getElementById("combos");
+const observacoesInput = document.getElementById("observacoes");
 const refrigerantesContainer = document.getElementById(
   "refrigerantes-container"
 );
 const criarPedidoBtn = document.getElementById("criar-pedido-btn");
 
-const cozinhaPedidos = document.getElementById("cozinha-pedidos");
-const despachantePedidos = document.getElementById("despachante-pedidos");
-const adminPedidos = document.getElementById("admin-pedidos");
+// Containers de pedidos
+const atendenteOrders = document.getElementById("atendente-orders");
+const cozinhaPendentes = document.getElementById("cozinha-pendentes");
+const cozinhaPreparo = document.getElementById("cozinha-preparo");
+const despachanteOrders = document.getElementById("despachante-orders");
+const adminOrders = document.getElementById("admin-orders");
 
-// ----- LOGIN -----
-let token = "";
-let role = "";
+// Refrigerantes disponíveis
+const refrigerantesList = ["Coca-Cola", "Coca-Zero", "Guaraná"];
 
-loginBtn.addEventListener("click", async () => {
-  const username = usernameInput.value;
-  const password = passwordInput.value;
-
-  try {
-    const res = await fetch("https://hamburgueria-mezu.onrender.com/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      token = data.token;
-      role = data.role;
-      userRoleSpan.textContent = role;
-      loginPanel.classList.add("hidden");
-      mainPanel.classList.remove("hidden");
-      mostrarPainelPorRole();
-      carregarPedidos();
-    } else {
-      loginError.textContent = data.error;
-    }
-  } catch (err) {
-    loginError.textContent = "Erro ao conectar ao servidor";
+function gerarRefrigerantesInputs() {
+  refrigerantesContainer.innerHTML = "";
+  const qtd = parseInt(combosInput.value) || 1;
+  for (let i = 0; i < qtd; i++) {
+    const div = document.createElement("div");
+    div.innerHTML = `<label>Combo ${i + 1} Refrigerante:</label>
+      <select class="refrigerante">
+        ${refrigerantesList.map((r) => `<option value="${r}">${r}</option>`).join("")}
+      </select>`;
+    refrigerantesContainer.appendChild(div);
   }
-});
+}
 
-logoutBtn.addEventListener("click", () => {
+combosInput.addEventListener("change", gerarRefrigerantesInputs);
+window.onload = gerarRefrigerantesInputs;
+
+// ===== Login =====
+loginBtn.onclick = async () => {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    loginError.textContent = data.error;
+    return;
+  }
+
+  token = data.token;
+  role = data.role;
+  loginPanel.classList.add("hidden");
+  mainPanel.classList.remove("hidden");
+  welcomeMsg.textContent = `Bem-vindo, ${username} (${role})`;
+
+  mostrarPainel(role);
+};
+
+// Logout
+logoutBtn.onclick = () => {
   token = "";
   role = "";
-  loginPanel.classList.remove("hidden");
   mainPanel.classList.add("hidden");
-});
+  loginPanel.classList.remove("hidden");
+};
 
-// ----- ATENDENTE -----
-function mostrarPainelPorRole() {
+// Mostrar painel correto
+function mostrarPainel(role) {
   atendentePanel.classList.add("hidden");
   cozinhaPanel.classList.add("hidden");
   despachantePanel.classList.add("hidden");
   adminPanel.classList.add("hidden");
 
   if (role === "atendente") atendentePanel.classList.remove("hidden");
-  if (role === "cozinha") cozinhaPanel.classList.remove("hidden");
-  if (role === "despachante") despachantePanel.classList.remove("hidden");
-  if (role === "admin") adminPanel.classList.remove("hidden");
+  else if (role === "cozinha") cozinhaPanel.classList.remove("hidden");
+  else if (role === "despachante") despachantePanel.classList.remove("hidden");
+  else if (role === "admin") adminPanel.classList.remove("hidden");
 }
 
-// Criar campos de refrigerante conforme quantidade de combos
-combosInput.addEventListener("input", () => {
-  const qtd = parseInt(combosInput.value) || 1;
-  refrigerantesContainer.innerHTML = "";
-  for (let i = 0; i < qtd; i++) {
-    const select = document.createElement("select");
-    select.innerHTML = `
-      <option value="Coca-Cola">Coca-Cola</option>
-      <option value="Coca-Zero">Coca-Zero</option>
-      <option value="Guarana">Guaraná</option>
-    `;
-    refrigerantesContainer.appendChild(select);
-  }
-});
-
-criarPedidoBtn.addEventListener("click", async () => {
+// ===== Criar pedido =====
+criarPedidoBtn.onclick = async () => {
   const cliente = clienteInput.value;
+  const observacoes = observacoesInput.value;
   const combos = parseInt(combosInput.value);
   const refrigerantes = Array.from(
-    refrigerantesContainer.querySelectorAll("select")
-  ).map((sel) => sel.value);
+    document.querySelectorAll(".refrigerante")
+  ).map((s) => s.value);
 
-  try {
-    await fetch("https://hamburgueria-mezu.onrender.com/pedidos", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ cliente, combos, refrigerantes }),
-    });
-    clienteInput.value = "";
-    combosInput.value = "1";
-    refrigerantesContainer.innerHTML = "";
-  } catch (err) {
-    alert("Erro ao criar pedido");
-  }
-});
+  if (!cliente || combos < 1)
+    return alert("Preencha o nome do cliente e quantidade de combos");
 
-// ----- SOCKET.IO -----
+  await fetch("/pedidos", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ cliente, combos, refrigerantes, observacoes }),
+  });
+
+  clienteInput.value = "";
+  observacoesInput.value = "";
+  combosInput.value = 1;
+  gerarRefrigerantesInputs();
+};
+
+// ===== Receber updates em tempo real =====
 socket.on("update", (orders) => {
-  // Limpa
-  cozinhaPedidos.innerHTML = "";
-  despachantePedidos.innerHTML = "";
-  adminPedidos.innerHTML = "";
+  // Limpar todos
+  atendenteOrders.innerHTML = "";
+  cozinhaPendentes.innerHTML = "";
+  cozinhaPreparo.innerHTML = "";
+  despachanteOrders.innerHTML = "";
+  adminOrders.innerHTML = "";
 
-  orders.forEach((pedido) => {
-    const card = document.createElement("div");
-    card.classList.add("pedido-card");
-    card.innerHTML = `<h4>Pedido #${pedido.numero} - ${pedido.cliente}</h4>
-      <p>Status: ${pedido.status}</p>`;
+  orders.forEach((order) => {
+    const div = document.createElement("div");
+    div.classList.add("order-card");
+    div.innerHTML = `<h4>Pedido #${order.numero}</h4>
+      <p><strong>Cliente:</strong> ${order.cliente}</p>
+      <p><strong>Status:</strong> ${order.status}</p>
+      <p><strong>Observações:</strong> ${order.observacoes || "-"}</p>
+      <p><strong>Refrigerantes:</strong> ${order.refrigerantes ? order.refrigerantes.join(", ") : "-"}</p>`;
 
-    if (role === "cozinha" && pedido.status === "pendente") {
-      const btn = document.createElement("button");
-      btn.textContent = "Em preparo";
-      btn.onclick = () => atualizarStatus(pedido.numero, "em preparo");
-      card.appendChild(btn);
-    }
-    if (role === "cozinha" && pedido.status === "em preparo") {
-      const btn = document.createElement("button");
-      btn.textContent = "Concluído";
-      btn.onclick = () => atualizarStatus(pedido.numero, "concluido");
-      card.appendChild(btn);
-    }
-    if (role === "despachante" && pedido.status === "concluido") {
+    // Botões de ação por role
+    if (role === "cozinha") {
+      if (order.status === "pendente") {
+        const btn = document.createElement("button");
+        btn.textContent = "Em Preparo";
+        btn.onclick = () => atualizarStatus(order.numero, "em preparo");
+        div.appendChild(btn);
+        cozinhaPendentes.appendChild(div);
+      } else if (order.status === "em preparo") {
+        const btn = document.createElement("button");
+        btn.textContent = "Concluído";
+        btn.onclick = () => atualizarStatus(order.numero, "concluido");
+        div.appendChild(btn);
+        cozinhaPreparo.appendChild(div);
+      }
+    } else if (role === "despachante" && order.status === "concluido") {
       const btn = document.createElement("button");
       btn.textContent = "Entregue";
-      btn.onclick = () => atualizarStatus(pedido.numero, "entregue");
-      card.appendChild(btn);
+      btn.onclick = () => atualizarStatus(order.numero, "entregue");
+      div.appendChild(btn);
+      despachanteOrders.appendChild(div);
+    } else if (role === "atendente") {
+      atendenteOrders.appendChild(div);
+    } else if (role === "admin") {
+      adminOrders.appendChild(div);
     }
-
-    if (role === "cozinha") cozinhaPedidos.appendChild(card);
-    if (role === "despachante") despachantePedidos.appendChild(card);
-    if (role === "admin") adminPedidos.appendChild(card);
-    if (role === "atendente") adminPedidos.appendChild(card);
   });
 });
 
 async function atualizarStatus(numero, status) {
-  await fetch(`https://hamburgueria-mezu.onrender.com/pedidos/${numero}`, {
+  await fetch(`/pedidos/${numero}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",

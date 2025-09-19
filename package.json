@@ -1,29 +1,17 @@
 {
   "name": "app-hamburgueria",
   "version": "1.0.0",
-  "description": "Sistema de hamburgueria com autenticação e permissões",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
-    "body-parser": "^1.20.3",
+    "@supabase/supabase-js": "^2.24.0",
+    "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
-    "socket.io": "^4.8.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Maximiano11/app-hamburgueria.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Maximiano11/app-hamburgueria/issues"
-  },
-  "homepage": "https://github.com/Maximiano11/app-hamburgueria#readme"
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "socket.io": "^4.6.1",
+    "dotenv": "^16.3.1"
+  }
 }
