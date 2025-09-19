@@ -1,48 +1,27 @@
-require("dotenv").config();
 const express = require("express");
-const bodyParser = require("body-parser");
-const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const { createServer } = require("http");
+const http = require("http");
 const { Server } = require("socket.io");
+const bodyParser = require("body-parser");
+const jwt = require("jsonwebtoken");
+const cors = require("cors");
 const { createClient } = require("@supabase/supabase-js");
 
+// Variáveis de ambiente (configurar no Render)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SECRET_KEY = process.env.SECRET_KEY || "hamburguer-cec";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, { cors: { origin: "*" } });
-const PORT = process.env.PORT || 3000;
-const SECRET_KEY = process.env.JWT_SECRET;
-
-// Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
-
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static("public"));
-
-// ------------------- Autenticação -------------------
-app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-  const { data: user, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("username", username)
-    .single();
-
-  if (!user || user.password !== password) {
-    return res.status(401).json({ error: "Usuário ou senha inválidos" });
-  }
-
-  const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
-    SECRET_KEY,
-    { expiresIn: "4h" }
-  );
-  res.json({ token, role: user.role });
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" },
 });
+
+app.use(bodyParser.json());
+app.use(cors());
+app.use(express.static("public"));
 
 // Middleware JWT
 function autenticar(req, res, next) {
@@ -58,133 +37,126 @@ function autenticar(req, res, next) {
   });
 }
 
-// ------------------- Pedidos -------------------
-
-// Função para gerar próximo número de pedido
-async function gerarProximoNumero() {
-  const { data, error } = await supabase
-    .from("orders")
-    .select("numero")
-    .order("numero", { ascending: false })
-    .limit(1)
+// ----- LOGIN -----
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("username", username)
     .single();
-  if (error || !data) return 1;
-  return data.numero + 1;
-}
 
-// Criar pedido (Atendente/Admin)
+  if (error || !user || user.password !== password)
+    return res.status(401).json({ error: "Usuário ou senha inválidos" });
+
+  const token = jwt.sign(
+    { id: user.id, username: user.username, role: user.role },
+    SECRET_KEY,
+    { expiresIn: "4h" }
+  );
+
+  res.json({ token, role: user.role });
+});
+
+// ----- CRIAR PEDIDO (Apenas Atendente) -----
 app.post("/pedidos", autenticar, async (req, res) => {
+  if (req.user.role !== "atendente" && req.user.role !== "admin")
+    return res.status(403).json({ error: "Permissão negada" });
+
+  const { cliente, combos, refrigerantes, observacoes } = req.body;
   try {
-    if (req.user.role !== "atendente" && req.user.role !== "admin") {
-      return res.status(403).json({ error: "Permissão negada" });
-    }
-
-    const { cliente, combos, refrigerantes, observacoes } = req.body;
-    if (
-      !cliente ||
-      !combos ||
-      !refrigerantes ||
-      refrigerantes.length !== combos
-    ) {
-      return res.status(400).json({ error: "Dados inválidos" });
-    }
-
-    // Inserir pedido
-    const numero = await gerarProximoNumero();
-    const { data: order, error: orderError } = await supabase
+    // Inserir pedido na tabela orders
+    const { data: order, error: orderErr } = await supabase
       .from("orders")
-      .insert([{ numero, cliente, status: "pendente" }])
+      .insert([{ numero: Date.now(), cliente, status: "pendente" }])
       .select()
       .single();
-    if (orderError) throw orderError;
 
-    // Inserir itens
-    for (let i = 0; i < combos; i++) {
-      const { error: itemError } = await supabase
-        .from("order_items")
-        .insert([
-          {
-            order_id: order.id,
-            item_index: i + 1,
-            refrigerante: refrigerantes[i],
-          },
-        ]);
-      if (itemError) throw itemError;
-    }
+    if (orderErr) throw orderErr;
 
-    io.emit("novoPedido", order); // tempo real
-    res.json({ message: "Pedido criado com sucesso!", pedido: order });
-  } catch (error) {
-    console.error(error);
+    // Inserir itens na tabela order_items
+    const items = combos.map((_, i) => ({
+      order_id: order.id,
+      item_index: i + 1,
+      refrigerante: refrigerantes[i],
+    }));
+
+    const { error: itemsErr } = await supabase
+      .from("order_items")
+      .insert(items);
+    if (itemsErr) throw itemsErr;
+
+    // Emitir para todos os clientes
+    io.emit("novoPedido", { order, items });
+
+    res.json({ message: "Pedido criado com sucesso!", order, items });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Erro ao criar pedido" });
   }
 });
 
-// Atualizar status (Cozinha/Despachante/Admin)
-app.put("/pedidos/:numero", autenticar, async (req, res) => {
+// ----- ATUALIZAR STATUS PEDIDO (Cozinha e Despachante) -----
+app.put("/pedidos/:id/status", autenticar, async (req, res) => {
+  const { status } = req.body;
+  const { id } = req.params;
+
   try {
-    const { numero } = req.params;
-    const { status } = req.body;
-
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("numero", numero)
-      .single();
-
-    if (orderError || !order)
-      return res.status(404).json({ error: "Pedido não encontrado" });
-
     // Verifica permissão
     if (
-      req.user.role === "cozinha" &&
-      !["em preparo", "concluido"].includes(status)
+      (req.user.role === "cozinha" &&
+        !["em preparo", "concluido"].includes(status)) ||
+      (req.user.role === "despachante" && status !== "entregue") ||
+      (req.user.role !== "cozinha" &&
+        req.user.role !== "despachante" &&
+        req.user.role !== "admin")
     ) {
       return res.status(403).json({ error: "Permissão negada" });
     }
-    if (req.user.role === "despachante" && status !== "entregue") {
-      return res.status(403).json({ error: "Permissão negada" });
-    }
 
-    if (req.user.role === "atendente" && req.user.role !== "admin") {
-      return res.status(403).json({ error: "Permissão negada" });
-    }
-
-    const { error: updateError } = await supabase
+    const { error } = await supabase
       .from("orders")
       .update({ status, atualizado_em: new Date().toISOString() })
-      .eq("numero", numero);
-    if (updateError) throw updateError;
+      .eq("id", id);
 
-    io.emit("atualizarPedido", { numero, status });
+    if (error) throw error;
+
+    // Emitir atualização em tempo real
+    io.emit("atualizacaoPedido", { id, status });
+
     res.json({ message: "Status atualizado com sucesso!" });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Erro ao atualizar status" });
   }
 });
 
-// Listar pedidos (todos logados)
+// ----- LISTAR PEDIDOS -----
 app.get("/pedidos", autenticar, async (req, res) => {
-  const { data: orders, error } = await supabase
-    .from("orders")
-    .select(
-      `
-      *,
-      order_items(*)
-    `
-    )
-    .order("numero", { ascending: true });
-  if (error) return res.status(500).json({ error: "Erro ao listar pedidos" });
-  res.json(orders);
+  try {
+    const { data: orders, error } = await supabase.from("orders").select("*");
+    if (error) throw error;
+
+    // Pegar itens de cada pedido
+    const { data: items, error: itemsErr } = await supabase
+      .from("order_items")
+      .select("*");
+    if (itemsErr) throw itemsErr;
+
+    res.json({ orders, items });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao listar pedidos" });
+  }
 });
 
-// ------------------- Socket.IO -------------------
+// ----- SOCKET.IO -----
 io.on("connection", (socket) => {
-  console.log("Novo usuário conectado:", socket.id);
+  console.log("Novo cliente conectado:", socket.id);
 });
 
-// ------------------- Start Server -------------------
-httpServer.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+// ----- INICIAR SERVIDOR -----
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
