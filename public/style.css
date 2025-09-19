@@ -1,82 +1,176 @@
-body {
-  font-family: "Arial", sans-serif;
-  background: #f0f2f5;
+/* Reset básico */
+* {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Body */
+body {
+  background: #f0f2f5;
+  color: #333;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  min-height: 100vh;
+  padding: 20px;
 }
 
-.panel {
+/* Painel de Login */
+#login-panel {
   background: #fff;
-  padding: 20px 30px;
-  margin-top: 40px;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-  width: 90%;
-  max-width: 500px;
+  padding: 40px 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  width: 350px;
+  text-align: center;
 }
 
-.panel h2 {
-  margin-top: 0;
-  color: #333;
+#login-panel h2 {
+  margin-bottom: 20px;
+  color: #ff4757;
 }
 
-input,
-textarea,
-select {
+#login-panel input {
   width: 100%;
-  padding: 10px;
-  margin: 8px 0;
-  border-radius: 6px;
+  padding: 12px 15px;
+  margin-bottom: 15px;
+  border-radius: 8px;
   border: 1px solid #ccc;
-  box-sizing: border-box;
+  font-size: 14px;
 }
 
+#login-panel button {
+  width: 100%;
+  padding: 12px;
+  background: #ff4757;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#login-panel button:hover {
+  background: #e84118;
+}
+
+#login-error {
+  margin-top: 10px;
+  color: #e84118;
+  font-weight: bold;
+}
+
+/* Painel do App */
+#app-panel {
+  width: 100%;
+  max-width: 1200px;
+}
+
+#app-panel h2 {
+  margin-bottom: 15px;
+  color: #2f3640;
+}
+
+#btnLogout {
+  background: #718093;
+  color: #fff;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+#btnLogout:hover {
+  background: #636e72;
+}
+
+/* Painéis específicos */
+.panel {
+  margin-bottom: 30px;
+}
+
+/* Inputs e selects */
+input,
+select {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+/* Botões de ação */
 button {
   padding: 10px 15px;
   border: none;
-  border-radius: 6px;
-  background-color: #007bff;
-  color: #fff;
+  border-radius: 8px;
   cursor: pointer;
-  margin-top: 10px;
+  font-weight: bold;
+  transition: 0.3s;
 }
 
 button:hover {
-  background-color: #0056b3;
+  opacity: 0.85;
 }
 
-.hidden {
-  display: none;
-}
-
-.logout {
-  float: right;
-  background: #dc3545;
-}
-
-.logout:hover {
-  background: #a71d2a;
-}
-
-.error {
-  color: #dc3545;
-}
-
-.success {
-  color: #28a745;
-}
-
-.combo-item {
+/* Pedido card */
+.pedido {
+  background: #fff;
+  padding: 15px 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  margin-bottom: 15px;
+  position: relative;
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+}
+
+.pedido strong {
+  font-size: 16px;
+  color: #2f3640;
   margin-bottom: 5px;
 }
 
-.combo-item select,
-.combo-item input {
-  flex: 1;
+.pedido button {
+  margin-top: 10px;
+  width: fit-content;
+  background: #1e90ff;
+  color: #fff;
+}
+
+.pedido button:hover {
+  background: #3742fa;
+}
+
+/* Status cores */
+.pedido-status-pendente {
+  border-left: 5px solid #ff7f50;
+}
+
+.pedido-status-em-preparo {
+  border-left: 5px solid #ffa502;
+}
+
+.pedido-status-concluído {
+  border-left: 5px solid #2ed573;
+}
+
+.pedido-status-entregue {
+  border-left: 5px solid #5352ed;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  #login-panel,
+  #app-panel {
+    width: 100%;
+  }
 }

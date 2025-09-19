@@ -5,43 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>App Hamburgueria</title>
     <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   </head>
   <body>
-    <div id="login-panel" class="panel">
+    <div id="login-panel">
       <h2>Login</h2>
       <input type="text" id="username" placeholder="Usuário" />
       <input type="password" id="password" placeholder="Senha" />
-      <button id="loginBtn">Entrar</button>
-      <div id="login-error" class="error"></div>
+      <button id="btnLogin">Entrar</button>
+      <p id="login-error"></p>
     </div>
 
-    <div id="app-panel" class="panel hidden">
-      <h2>Hamburgueria - <span id="role-name"></span></h2>
-      <button id="logoutBtn" class="logout">Sair</button>
+    <div id="app-panel" style="display: none">
+      <h2>Bem-vindo, <span id="user-role"></span></h2>
+      <button id="btnLogout">Sair</button>
 
-      <div id="atendente-panel" class="hidden">
-        <h3>Novo Pedido</h3>
-        <input type="text" id="cliente" placeholder="Nome do Cliente" />
+      <!-- Atendente -->
+      <div id="atendente-panel" class="panel" style="display: none">
+        <h3>Registrar Pedido</h3>
+        <input type="text" id="cliente" placeholder="Nome do cliente" />
         <input
           type="number"
-          id="numCombos"
-          placeholder="Quantidade de Combos"
+          id="quantidade"
+          placeholder="Quantidade de combos"
           min="1"
         />
-        <div id="combos-container"></div>
-        <textarea id="observacoes" placeholder="Observações"></textarea>
-        <button id="addPedidoBtn">Adicionar Pedido</button>
-        <div id="pedido-msg" class="success"></div>
+        <div id="refrigerantes-container"></div>
+        <button id="btnCriarPedido">Criar Pedido</button>
       </div>
 
-      <div id="cozinha-panel" class="hidden">
-        <h3>Pedidos para Cozinha</h3>
-        <div id="pedidos-cozinha"></div>
+      <!-- Cozinha -->
+      <div id="cozinha-panel" class="panel" style="display: none">
+        <h3>Pedidos na Cozinha</h3>
+        <div id="cozinha-pedidos"></div>
       </div>
 
-      <div id="despachante-panel" class="hidden">
+      <!-- Despachante -->
+      <div id="despachante-panel" class="panel" style="display: none">
         <h3>Pedidos para Despacho</h3>
-        <div id="pedidos-despachante"></div>
+        <div id="despachante-pedidos"></div>
+      </div>
+
+      <!-- Admin -->
+      <div id="admin-panel" class="panel" style="display: none">
+        <h3>Todos os Pedidos</h3>
+        <div id="admin-pedidos"></div>
       </div>
     </div>
 

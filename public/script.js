@@ -1,154 +1,192 @@
-let token = null;
-let role = null;
+const socket = io(); // conecta ao servidor Socket.IO
 
-// Login
-document.getElementById("loginBtn").addEventListener("click", async () => {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
+// Pegando elementos do DOM
+const loginPanel = document.getElementById("login-panel");
+const appPanel = document.getElementById("app-panel");
+const loginError = document.getElementById("login-error");
+const btnLogout = document.getElementById("btnLogout");
 
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
+const inputUsername = document.getElementById("username");
+const inputPassword = document.getElementById("password");
+const btnLogin = document.getElementById("btnLogin");
 
-  const data = await res.json();
-  if (res.ok) {
-    token = data.token;
-    role = data.role;
-    document.getElementById("role-name").innerText = role;
-    document.getElementById("login-panel").classList.add("hidden");
-    document.getElementById("app-panel").classList.remove("hidden");
-    mostrarPainel(role);
-    carregarPedidos();
-  } else {
-    document.getElementById("login-error").innerText = data.error;
+const pedidosContainer = document.getElementById("pedidos-container");
+const pedidoForm = document.getElementById("pedido-form");
+const inputCliente = document.getElementById("cliente");
+const inputCombos = document.getElementById("combos");
+
+// Guardar usuário logado
+let currentUser = null;
+
+// --- Login ---
+btnLogin.addEventListener("click", async () => {
+  const username = inputUsername.value;
+  const password = inputPassword.value;
+
+  try {
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      currentUser = data;
+      loginPanel.style.display = "none";
+      appPanel.style.display = "block";
+      renderPedidoForm();
+      socket.emit("join", data.role);
+    } else {
+      loginError.textContent = data.error;
+    }
+  } catch (err) {
+    console.error(err);
   }
 });
 
-// Logout
-document.getElementById("logoutBtn").addEventListener("click", () => {
-  token = null;
-  role = null;
-  location.reload();
+// --- Logout ---
+btnLogout.addEventListener("click", () => {
+  currentUser = null;
+  loginPanel.style.display = "block";
+  appPanel.style.display = "none";
 });
 
-// Mostrar painel específico
-function mostrarPainel(role) {
-  if (role === "atendente")
-    document.getElementById("atendente-panel").classList.remove("hidden");
-  if (role === "cozinha")
-    document.getElementById("cozinha-panel").classList.remove("hidden");
-  if (role === "despachante")
-    document.getElementById("despachante-panel").classList.remove("hidden");
+// --- Renderiza formulário de pedido só para atendente ---
+function renderPedidoForm() {
+  if (currentUser.role === "atendente" || currentUser.role === "admin") {
+    pedidoForm.style.display = "block";
+  } else {
+    pedidoForm.style.display = "none";
+  }
 }
 
-// Adicionar combos dinamicamente
-document.getElementById("numCombos").addEventListener("input", () => {
-  const container = document.getElementById("combos-container");
-  container.innerHTML = "";
-  const num = parseInt(document.getElementById("numCombos").value);
-  for (let i = 0; i < num; i++) {
-    const div = document.createElement("div");
-    div.classList.add("combo-item");
-    div.innerHTML = `
-      <input type="text" placeholder="Combo ${i + 1}">
-      <select>
-        <option value="Coca-Cola">Coca-Cola</option>
-        <option value="Coca-Zero">Coca-Zero</option>
-        <option value="Guaraná">Guaraná</option>
-      </select>
-    `;
-    container.appendChild(div);
-  }
-});
-
-// Adicionar pedido
-document.getElementById("addPedidoBtn").addEventListener("click", async () => {
-  const cliente = document.getElementById("cliente").value;
-  const observacoes = document.getElementById("observacoes").value;
-  const combosElements = document.querySelectorAll(".combo-item");
-  const combos = [];
+// --- Criar pedido ---
+pedidoForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const combos = parseInt(inputCombos.value);
   const refrigerantes = [];
-  combosElements.forEach((el) => {
-    combos.push(el.querySelector("input").value);
-    refrigerantes.push(el.querySelector("select").value);
-  });
 
-  const res = await fetch("/pedidos", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ cliente, combos, refrigerantes, observacoes }),
-  });
+  for (let i = 0; i < combos; i++) {
+    const ref = prompt(
+      `Escolha o refrigerante para o combo ${i + 1} (Coca-Cola, Coca-Zero, Guaraná)`
+    );
+    refrigerantes.push(ref);
+  }
 
-  const data = await res.json();
-  if (res.ok) {
-    document.getElementById("pedido-msg").innerText = data.message;
-    carregarPedidos();
-  } else {
-    document.getElementById("pedido-msg").innerText = data.error;
+  const pedidoData = {
+    cliente: inputCliente.value,
+    combos,
+    refrigerantes,
+  };
+
+  try {
+    const res = await fetch("/pedidos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${currentUser.token}`,
+      },
+      body: JSON.stringify(pedidoData),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      socket.emit("novoPedido", data.pedido);
+      pedidoForm.reset();
+    } else {
+      alert(data.error);
+    }
+  } catch (err) {
+    console.error(err);
   }
 });
 
-// Carregar pedidos
-async function carregarPedidos() {
-  if (!token) return;
-  const res = await fetch("/pedidos", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const pedidos = await res.json();
-  // Limpa painéis
-  document.getElementById("pedidos-cozinha").innerHTML = "";
-  document.getElementById("pedidos-despachante").innerHTML = "";
+// --- Renderizar pedidos ---
+function renderPedidos(pedidos) {
+  pedidosContainer.innerHTML = "";
 
   pedidos.forEach((p) => {
-    const div = document.createElement("div");
-    div.classList.add("pedido-item");
-    div.innerHTML = `
-      <strong>#${p.numero}</strong> - ${p.cliente} <br>
-      Combos: ${p.combos.map((c, i) => `${c} (${p.refrigerantes[i]})`).join(", ")} <br>
-      Status: ${p.status} <br>
-      Observações: ${p.observacoes || "-"} <br>
+    const card = document.createElement("div");
+    card.className = `pedido pedido-status-${p.status.replace(" ", "-")}`;
+    card.innerHTML = `
+      <strong>Pedido #${p.numero} - ${p.cliente}</strong>
+      <p>Status: ${p.status}</p>
+      <p>Combos: ${p.combos}</p>
+      <p>Refrigerantes: ${p.refrigerantes.join(", ")}</p>
     `;
-    if (role === "cozinha" && p.status === "pendente") {
-      const btn = document.createElement("button");
-      btn.innerText = "Em Preparo";
-      btn.addEventListener("click", async () => {
-        await fetch(`/pedidos/${p.numero}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: "em preparo" }),
-        });
-        carregarPedidos();
-      });
-      div.appendChild(btn);
-    }
-    if (role === "despachante" && p.status === "em preparo") {
-      const btn = document.createElement("button");
-      btn.innerText = "Entregue";
-      btn.addEventListener("click", async () => {
-        await fetch(`/pedidos/${p.numero}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: "entregue" }),
-        });
-        carregarPedidos();
-      });
-      div.appendChild(btn);
+
+    // Botões de ação para cozinha e despachante
+    if (
+      (currentUser.role === "cozinha" || currentUser.role === "admin") &&
+      p.status === "pendente"
+    ) {
+      const btnPreparar = document.createElement("button");
+      btnPreparar.textContent = "Em Preparo";
+      btnPreparar.onclick = () => atualizarStatus(p.numero, "em preparo");
+      card.appendChild(btnPreparar);
     }
 
-    if (role === "cozinha")
-      document.getElementById("pedidos-cozinha").appendChild(div);
-    if (role === "despachante")
-      document.getElementById("pedidos-despachante").appendChild(div);
+    if (
+      (currentUser.role === "cozinha" || currentUser.role === "admin") &&
+      p.status === "em preparo"
+    ) {
+      const btnConcluir = document.createElement("button");
+      btnConcluir.textContent = "Concluído";
+      btnConcluir.onclick = () => atualizarStatus(p.numero, "concluído");
+      card.appendChild(btnConcluir);
+    }
+
+    if (
+      (currentUser.role === "despachante" || currentUser.role === "admin") &&
+      p.status === "concluído"
+    ) {
+      const btnEntregar = document.createElement("button");
+      btnEntregar.textContent = "Entregue";
+      btnEntregar.onclick = () => atualizarStatus(p.numero, "entregue");
+      card.appendChild(btnEntregar);
+    }
+
+    pedidosContainer.appendChild(card);
   });
+}
+
+// --- Atualizar status ---
+async function atualizarStatus(numero, status) {
+  try {
+    const res = await fetch(`/pedidos/${numero}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${currentUser.token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      socket.emit("atualizarPedido", data.pedido);
+    } else {
+      alert(data.error);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// --- Socket.IO eventos ---
+socket.on("atualizarPedidos", (pedidos) => renderPedidos(pedidos));
+socket.on("novoPedido", (pedido) => {
+  pedidosContainer.appendChild(createPedidoCard(pedido));
+});
+
+// --- Função auxiliar para criar card individual (usado pelo Socket) ---
+function createPedidoCard(p) {
+  const card = document.createElement("div");
+  card.className = `pedido pedido-status-${p.status.replace(" ", "-")}`;
+  card.innerHTML = `
+    <strong>Pedido #${p.numero} - ${p.cliente}</strong>
+    <p>Status: ${p.status}</p>
+    <p>Combos: ${p.combos}</p>
+    <p>Refrigerantes: ${p.refrigerantes.join(", ")}</p>
+  `;
+  return card;
 }
