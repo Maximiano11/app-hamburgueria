@@ -6,22 +6,16 @@ body {
 }
 
 .panel {
-  max-width: 900px;
-  margin: 20px auto;
-  padding: 20px;
+  max-width: 800px;
+  margin: 50px auto;
   background: white;
+  padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .hidden {
   display: none;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 input,
@@ -29,48 +23,48 @@ textarea,
 select {
   width: 100%;
   padding: 8px;
-  margin: 6px 0;
+  margin: 5px 0;
   border-radius: 5px;
   border: 1px solid #ccc;
 }
 
 button {
   padding: 10px 15px;
+  margin-top: 10px;
+  background: #ff6b6b;
   border: none;
   border-radius: 5px;
-  background: #ff5e57;
   color: white;
   cursor: pointer;
-  margin-top: 10px;
-  transition: 0.3s;
 }
 
 button:hover {
-  background: #ff3b30;
+  background: #ff4757;
 }
 
-.orders-container {
+.top-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.order-card {
-  background: #fff3e0;
-  border-radius: 8px;
+h3 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.pedido-card {
+  background: #f0f0f0;
   padding: 10px;
-  width: 250px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  margin: 5px 0;
+  border-radius: 5px;
 }
 
-.order-card h4 {
-  margin: 0;
-}
-
-.order-item {
-  margin-left: 10px;
+.pedido-card button {
+  margin-right: 5px;
 }
 
 .error {
   color: red;
+  margin-top: 10px;
 }

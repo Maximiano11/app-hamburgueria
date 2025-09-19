@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hamburgueria - Sistema</title>
+    <title>Hamburgueria - App</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   </head>
   <body>
     <div id="login-panel" class="panel">
@@ -13,47 +13,46 @@
       <input type="text" id="username" placeholder="Usuário" />
       <input type="password" id="password" placeholder="Senha" />
       <button id="login-btn">Entrar</button>
-      <p id="login-error" class="error"></p>
+      <div id="login-error" class="error"></div>
     </div>
 
-    <div id="main-panel" class="panel hidden">
-      <div class="header">
+    <div id="app-panel" class="panel hidden">
+      <div class="top-bar">
         <h2 id="welcome-msg">Bem-vindo</h2>
         <button id="logout-btn">Sair</button>
       </div>
 
-      <!-- Painel atendente -->
-      <div id="atendente-panel" class="role-panel hidden">
+      <div id="atendente-panel" class="user-panel hidden">
         <h3>Registrar Pedido</h3>
         <input type="text" id="cliente" placeholder="Nome do Cliente" />
-        <input type="number" id="combos" min="1" max="10" value="1" />
+        <input
+          type="number"
+          id="combos"
+          placeholder="Quantidade de Combos"
+          min="1"
+        />
         <div id="refrigerantes-container"></div>
         <textarea id="observacoes" placeholder="Observações"></textarea>
-        <button id="criar-pedido-btn">Registrar Pedido</button>
-
-        <h3>Pedidos em Andamento</h3>
-        <div id="atendente-orders" class="orders-container"></div>
+        <button id="criar-pedido-btn">Criar Pedido</button>
+        <h3>Pedidos</h3>
+        <div id="pedidos-list"></div>
       </div>
 
-      <!-- Painel cozinha -->
-      <div id="cozinha-panel" class="role-panel hidden">
+      <div id="cozinha-panel" class="user-panel hidden">
         <h3>Pedidos Recebidos</h3>
-        <div id="cozinha-pendentes" class="orders-container"></div>
-
-        <h3>Pedidos em Preparo</h3>
-        <div id="cozinha-preparo" class="orders-container"></div>
+        <div id="pedidos-recebidos"></div>
+        <h3>Pedidos em Andamento</h3>
+        <div id="pedidos-andamento"></div>
       </div>
 
-      <!-- Painel despachante -->
-      <div id="despachante-panel" class="role-panel hidden">
-        <h3>Pedidos Prontos para Entrega</h3>
-        <div id="despachante-orders" class="orders-container"></div>
+      <div id="despachante-panel" class="user-panel hidden">
+        <h3>Pedidos Prontos</h3>
+        <div id="pedidos-prontos"></div>
       </div>
 
-      <!-- Painel admin -->
-      <div id="admin-panel" class="role-panel hidden">
-        <h3>Todos os Pedidos</h3>
-        <div id="admin-orders" class="orders-container"></div>
+      <div id="admin-panel" class="user-panel hidden">
+        <h3>Admin - Todos os pedidos</h3>
+        <div id="admin-pedidos"></div>
       </div>
     </div>
 
