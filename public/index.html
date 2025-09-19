@@ -1,43 +1,62 @@
 <!doctype html>
-<html lang="pt-br">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>App Hamburgueria</title>
+    <title>Hamburgueria</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   </head>
   <body>
-    <div id="login-panel">
-      <h1>Login</h1>
-      <input type="text" id="username" placeholder="Usuário" />
-      <input type="password" id="password" placeholder="Senha" />
-      <button id="loginBtn">Entrar</button>
-      <p id="login-error" class="error"></p>
-    </div>
-
-    <div id="app-panel" class="hidden">
-      <div class="header">
-        <h1>Bem-vindo, <span id="user-role"></span></h1>
-        <button id="logoutBtn">Sair</button>
+    <div class="container">
+      <!-- LOGIN -->
+      <div id="login-panel" class="panel">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Usuário" />
+        <input type="password" id="password" placeholder="Senha" />
+        <button id="login-btn">Entrar</button>
+        <p id="login-error" class="error"></p>
       </div>
 
-      <div id="atendente-panel" class="hidden">
-        <h2>Registrar Pedido</h2>
-        <input type="text" id="cliente" placeholder="Nome do cliente" />
-        <input
-          type="number"
-          id="combos"
-          placeholder="Quantidade de combos"
-          min="1"
-        />
-        <div id="refrigerantes-container"></div>
-        <button id="create-order">Criar Pedido</button>
-      </div>
+      <!-- PAINEL PRINCIPAL -->
+      <div id="main-panel" class="panel hidden">
+        <div class="top-bar">
+          <h2>Bem-vindo, <span id="user-role"></span></h2>
+          <button id="logout-btn">Sair</button>
+        </div>
 
-      <div id="pedidos-panel">
-        <h2>Pedidos</h2>
-        <div id="pedidos-list"></div>
+        <!-- ATENDENTE -->
+        <div id="atendente-panel" class="role-panel hidden">
+          <h3>Criar Pedido</h3>
+          <input type="text" id="cliente" placeholder="Nome do cliente" />
+          <input
+            type="number"
+            id="combos"
+            placeholder="Qtd de combos"
+            min="1"
+            value="1"
+          />
+          <div id="refrigerantes-container"></div>
+          <button id="criar-pedido-btn">Registrar Pedido</button>
+        </div>
+
+        <!-- COZINHA -->
+        <div id="cozinha-panel" class="role-panel hidden">
+          <h3>Pedidos em preparo</h3>
+          <div id="cozinha-pedidos"></div>
+        </div>
+
+        <!-- DESPACHANTE -->
+        <div id="despachante-panel" class="role-panel hidden">
+          <h3>Pedidos para entregar</h3>
+          <div id="despachante-pedidos"></div>
+        </div>
+
+        <!-- ADMIN -->
+        <div id="admin-panel" class="role-panel hidden">
+          <h3>Todos os pedidos (Admin)</h3>
+          <div id="admin-pedidos"></div>
+        </div>
       </div>
     </div>
 
