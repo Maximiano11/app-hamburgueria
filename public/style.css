@@ -1,73 +1,37 @@
 body {
-  font-family: "Arial", sans-serif;
-  background: linear-gradient(135deg, #f8b400, #ff6b6b);
-  margin: 0;
-  padding: 0;
-}
-
-.container {
-  max-width: 900px;
-  margin: 20px auto;
-  background: #fff;
-  border-radius: 15px;
+  font-family: sans-serif;
+  background: #f5f5f5;
   padding: 20px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
-
-h1,
 h2,
 h3 {
-  text-align: center;
+  color: #333;
 }
-
-.panel {
-  margin-top: 20px;
+button {
+  padding: 5px 10px;
+  margin: 5px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background: #ff7f50;
+  color: white;
 }
-
-.hidden {
-  display: none;
+.pedido {
+  padding: 10px;
+  margin: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background: white;
 }
-
+#refrigerantesDiv select {
+  margin: 5px;
+}
 input,
 textarea,
-select,
-button {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  font-size: 16px;
-  border-radius: 10px;
+select {
+  padding: 5px;
+  margin: 5px;
+  border-radius: 5px;
   border: 1px solid #ccc;
-}
-
-button {
-  cursor: pointer;
-  background: #ff6b6b;
-  color: #fff;
-  font-weight: bold;
-  border: none;
-  transition: 0.3s;
-}
-
-button:hover {
-  background: #f94d4d;
-}
-
-.pedidoCard {
-  background: #f1f1f1;
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 10px;
-}
-
-.pedidoCard img {
-  width: 30px;
-  vertical-align: middle;
-  margin-right: 5px;
-}
-
-.error {
-  color: red;
-  margin-top: 10px;
+  width: 200px;
 }

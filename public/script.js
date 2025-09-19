@@ -1,146 +1,164 @@
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const mainDiv = document.getElementById("mainDiv");
+const loginDiv = document.getElementById("loginDiv");
+
+let token, role;
 const socket = io("https://hamburgueria-mezu.onrender.com");
 
 // Login
-const loginPanel = document.getElementById("loginPanel");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
-const loginBtn = document.getElementById("loginBtn");
-const loginError = document.getElementById("loginError");
-
-const welcomePanel = document.getElementById("welcomePanel");
-const userRoleSpan = document.getElementById("userRole");
-const logoutBtn = document.getElementById("logoutBtn");
-
-let token = null;
-let role = null;
-
 loginBtn.onclick = async () => {
-  const username = usernameInput.value;
-  const password = passwordInput.value;
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
   try {
-    const res = await fetch("https://hamburgueria-mezu.onrender.com/login", {
+    const res = await fetch("/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
-    if (res.status !== 200) throw new Error(data.error);
+    if (data.error) return alert(data.error);
+
     token = data.token;
     role = data.role;
-    userRoleSpan.textContent = `${username} (${role})`;
-    loginPanel.classList.add("hidden");
-    welcomePanel.classList.remove("hidden");
+    loginDiv.style.display = "none";
+    mainDiv.style.display = "block";
 
-    showPanel(role);
+    setupUI();
     carregarPedidos();
-  } catch (err) {
-    loginError.textContent = err.message;
+  } catch (e) {
+    console.error(e);
+    alert("Erro ao logar");
   }
 };
 
 logoutBtn.onclick = () => {
   token = null;
   role = null;
-  location.reload();
+  loginDiv.style.display = "block";
+  mainDiv.style.display = "none";
 };
 
-// Mostrar painel correto
-function showPanel(role) {
-  const panels = {
-    atendente: "atendentePanel",
-    cozinha: "cozinhaPanel",
-    despachante: "despachantePanel",
-    admin: "atendentePanel", // admin pode ver tudo, por enquanto atendente
-  };
-  Object.values(panels).forEach((p) =>
-    document.getElementById(p).classList.add("hidden")
-  );
-  if (panels[role])
-    document.getElementById(panels[role]).classList.remove("hidden");
+// Configura painel conforme role
+function setupUI() {
+  if (["atendente", "admin"].includes(role))
+    document.getElementById("atendentePanel").style.display = "block";
+  if (["cozinha", "admin"].includes(role))
+    document.getElementById("cozinhaPanel").style.display = "block";
+  if (["despachante", "admin"].includes(role))
+    document.getElementById("despachantePanel").style.display = "block";
 }
 
-// Atendente - refrigerantes dinâmicos
-const combosInput = document.getElementById("combos");
-const refrigerantesContainer = document.getElementById(
-  "refrigerantesContainer"
-);
-
-combosInput.oninput = () => {
-  refrigerantesContainer.innerHTML = "";
-  const qtd = parseInt(combosInput.value) || 0;
-  for (let i = 0; i < qtd; i++) {
-    const sel = document.createElement("select");
-    sel.innerHTML = `
-      <option value="Coca-Cola">Coca-Cola</option>
-      <option value="Coca-Zero">Coca-Zero</option>
-      <option value="Guaraná">Guaraná</option>
-    `;
-    sel.dataset.index = i;
-    refrigerantesContainer.appendChild(sel);
-  }
-};
-
 // Criar pedido
-const criarPedidoBtn = document.getElementById("criarPedidoBtn");
-criarPedidoBtn.onclick = async () => {
+document.getElementById("criarPedidoBtn").onclick = async () => {
   const cliente = document.getElementById("cliente").value;
   const combos = parseInt(document.getElementById("combos").value);
   const observacoes = document.getElementById("observacoes").value;
 
-  const refrigerantes = Array.from(
-    refrigerantesContainer.querySelectorAll("select")
-  ).map((s) => s.value);
+  const refrigerantes = [];
+  for (let i = 0; i < combos; i++) {
+    refrigerantes.push(document.getElementById(`refrigerante${i}`).value);
+  }
 
   try {
-    const res = await fetch("https://hamburgueria-mezu.onrender.com/pedidos", {
+    const res = await fetch("/pedidos", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: "Bearer " + token,
       },
       body: JSON.stringify({ cliente, combos, refrigerantes, observacoes }),
     });
     const data = await res.json();
-    if (res.status !== 200) throw new Error(data.error);
-    alert("Pedido criado!");
-    carregarPedidos();
-  } catch (err) {
-    alert("Erro ao criar pedido: " + err.message);
+    if (data.error) return alert(data.error);
+    alert(data.message);
+  } catch (e) {
+    console.error(e);
+    alert("Erro ao criar pedido");
   }
 };
 
-// Carregar pedidos em tempo real
+// Atualizar pedidos em tempo real
+socket.on("pedidoAtualizado", () => carregarPedidos());
+
 async function carregarPedidos() {
+  if (!token) return;
   try {
-    const res = await fetch("https://hamburgueria-mezu.onrender.com/pedidos", {
-      headers: { Authorization: `Bearer ${token}` },
+    const res = await fetch("/pedidos", {
+      headers: { Authorization: "Bearer " + token },
     });
     const pedidos = await res.json();
     atualizarUI(pedidos);
-  } catch (err) {
-    console.error(err);
+  } catch (e) {
+    console.error(e);
   }
 }
 
-// Atualizar UI (simplificado, você pode detalhar para cada função)
 function atualizarUI(pedidos) {
-  const list = document.getElementById("pedidosList");
-  if (!list) return;
-  list.innerHTML = "";
+  if (!Array.isArray(pedidos)) return;
+  // Atualiza os painéis
+  document.getElementById("pedidosRecebidos").innerHTML = "";
+  document.getElementById("pedidosEmPreparo").innerHTML = "";
+  document.getElementById("pedidosProntos").innerHTML = "";
+
   pedidos.forEach((p) => {
     const div = document.createElement("div");
-    div.className = "pedidoCard";
-    div.innerHTML = `
-      <strong>Pedido #${p.id}</strong> - ${p.cliente}<br>
-      Status: ${p.status}<br>
-      Observações: ${p.observacoes || "-"}<br>
-      Itens: ${p.itens ? p.itens.map((i) => `<img src="${i.refrigerante}.png"> ${i.refrigerante}`).join(", ") : ""}
-    `;
-    list.appendChild(div);
+    div.className = "pedido";
+    div.innerHTML = `<b>#${p.numero}</b> ${p.cliente} <br> Status: ${p.status}`;
+
+    if (["cozinha", "admin"].includes(role)) {
+      if (p.status === "pendente") {
+        document.getElementById("pedidosRecebidos").appendChild(div);
+        const btn = document.createElement("button");
+        btn.innerText = "Em preparo";
+        btn.onclick = () => atualizarStatus(p.id, "em preparo");
+        div.appendChild(btn);
+      } else if (p.status === "em preparo") {
+        document.getElementById("pedidosEmPreparo").appendChild(div);
+        const btn = document.createElement("button");
+        btn.innerText = "Concluido";
+        btn.onclick = () => atualizarStatus(p.id, "concluido");
+        div.appendChild(btn);
+      }
+    }
+
+    if (["despachante", "admin"].includes(role) && p.status === "concluido") {
+      document.getElementById("pedidosProntos").appendChild(div);
+      const btn = document.createElement("button");
+      btn.innerText = "Entregue";
+      btn.onclick = () => atualizarStatus(p.id, "entregue");
+      div.appendChild(btn);
+    }
   });
 }
 
-// Socket.IO - receber atualização em tempo real
-socket.on("pedidoAtualizado", (data) => {
-  carregarPedidos();
-});
+async function atualizarStatus(id, status) {
+  try {
+    await fetch("/pedidos/" + id, {
+      method: "PUT",
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// Gerar selects de refrigerante
+document.getElementById("combos").onchange = () => {
+  const n = parseInt(document.getElementById("combos").value);
+  const div = document.getElementById("refrigerantesDiv");
+  div.innerHTML = "";
+  for (let i = 0; i < n; i++) {
+    const select = document.createElement("select");
+    select.id = `refrigerante${i}`;
+    select.innerHTML = `<option value="Coca-Cola">Coca-Cola</option>
+                      <option value="Coca-Zero">Coca-Zero</option>
+                      <option value="Guaraná">Guaraná</option>`;
+    div.appendChild(select);
+  }
+};
