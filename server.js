@@ -1,40 +1,25 @@
+// server.js
 require("dotenv").config();
 const express = require("express");
-const bodyParser = require("body-parser");
 const cors = require("cors");
-const http = require("http");
-const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
-
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = process.env.JWT_SECRET;
+const SECRET_KEY = process.env.JWT_SECRET || "hamburguer-cec";
+
+// Configurações
+app.use(cors());
+app.use(express.json());
+app.use(express.static("public")); // serve arquivos do front-end
 
 // Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-app.use(bodyParser.json());
-app.use(cors());
-app.use(express.static("public"));
-
-// ----- SOCKET.IO -----
-function atualizarPedidosRealtime() {
-  io.emit("pedidoAtualizado");
-}
-
-io.on("connection", (socket) => {
-  console.log("Cliente conectado: ", socket.id);
-});
-
-// ----- JWT Middleware -----
+// --- Middleware de autenticação JWT ---
 function autenticar(req, res, next) {
   const authHeader = req.headers["authorization"];
   if (!authHeader)
@@ -48,110 +33,136 @@ function autenticar(req, res, next) {
   });
 }
 
-// ----- ROTAS -----
-
-// Login
+// --- LOGIN ---
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  const { data: users } = await supabase
-    .from("users")
-    .select("*")
-    .eq("username", username)
-    .limit(1);
 
-  if (!users || users.length === 0)
-    return res.status(401).json({ error: "Usuário ou senha inválidos" });
-
-  const user = users[0];
-  const senhaValida = bcrypt.compareSync(password, user.password);
-  if (!senhaValida)
-    return res.status(401).json({ error: "Usuário ou senha inválidos" });
-
-  const token = jwt.sign({ id: user.id, role: user.role }, SECRET_KEY, {
-    expiresIn: "4h",
-  });
-  res.json({ token, role: user.role });
-});
-
-// Criar pedido (Atendente ou Admin)
-app.post("/pedidos", autenticar, async (req, res) => {
-  if (!["atendente", "admin"].includes(req.user.role))
-    return res.status(403).json({ error: "Permissão negada" });
-
-  const { cliente, combos, refrigerantes, observacoes } = req.body;
   try {
-    // Cria pedido
-    const { data: novoPedido } = await supabase
-      .from("orders")
-      .insert([{ numero: Date.now(), cliente, status: "pendente" }])
-      .select()
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("username", username)
       .single();
 
-    // Cria itens do pedido
-    for (let i = 0; i < combos; i++) {
-      await supabase
-        .from("order_items")
-        .insert([
-          {
-            order_id: novoPedido.id,
-            item_index: i + 1,
-            refrigerante: refrigerantes[i],
-          },
-        ]);
+    if (error || !user || user.password !== password) {
+      return res.status(401).json({ error: "Usuário ou senha inválidos" });
     }
 
-    atualizarPedidosRealtime();
-    res.json({ message: "Pedido criado com sucesso!" });
-  } catch (error) {
-    console.error(error);
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      SECRET_KEY,
+      { expiresIn: "4h" }
+    );
+
+    res.json({ token, role: user.role, username: user.username });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro no login" });
+  }
+});
+
+// --- ROTAS DE PEDIDOS ---
+// Criar pedido (apenas atendente e admin)
+app.post("/pedidos", autenticar, async (req, res) => {
+  const { role } = req.user;
+  if (!["atendente", "admin"].includes(role)) {
+    return res.status(403).json({ error: "Permissão negada" });
+  }
+
+  const { cliente, combos } = req.body; // combos = [{ itemIndex, refrigerante }, ...]
+
+  try {
+    // Criar pedido
+    const { data: lastOrder } = await supabase
+      .from("orders")
+      .select("*")
+      .order("numero", { ascending: false })
+      .limit(1)
+      .single();
+
+    const numero = lastOrder ? lastOrder.numero + 1 : 1;
+
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert([{ numero, cliente, status: "pendente" }])
+      .single();
+
+    if (orderError) throw orderError;
+
+    // Inserir itens
+    for (let item of combos) {
+      await supabase.from("order_items").insert([
+        {
+          order_id: order.id,
+          item_index: item.itemIndex,
+          refrigerante: item.refrigerante,
+        },
+      ]);
+    }
+
+    res.json({ message: "Pedido criado com sucesso!", pedido: order });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Erro ao criar pedido" });
   }
 });
 
-// Atualizar status do pedido (Cozinha, Despachante ou Admin)
-app.put("/pedidos/:id", autenticar, async (req, res) => {
+// Atualizar status do pedido (cozinha, despachante e admin)
+app.put("/pedidos/:numero", autenticar, async (req, res) => {
+  const { numero } = req.params;
   const { status } = req.body;
-  const { id } = req.params;
-  const rolesPermitidos = {
-    cozinha: ["em preparo", "concluido"],
-    despachante: ["entregue"],
-    admin: ["pendente", "em preparo", "concluido", "entregue"],
-  };
-
-  if (
-    !rolesPermitidos[req.user.role]?.includes(status) &&
-    req.user.role !== "admin"
-  )
-    return res.status(403).json({ error: "Permissão negada" });
+  const { role } = req.user;
 
   try {
-    await supabase.from("orders").update({ status }).eq("id", id);
-    atualizarPedidosRealtime();
-    res.json({ message: "Status atualizado!" });
-  } catch (error) {
-    console.error(error);
+    // Buscar pedido
+    const { data: order, error } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("numero", numero)
+      .single();
+
+    if (error || !order)
+      return res.status(404).json({ error: "Pedido não encontrado" });
+
+    // Verifica permissão
+    const allowedRoles = {
+      cozinha: ["em preparo", "concluido"],
+      despachante: ["entregue"],
+      admin: ["pendente", "em preparo", "concluido", "entregue"],
+    };
+
+    if (!allowedRoles[role]?.includes(status) && role !== "admin") {
+      return res
+        .status(403)
+        .json({ error: "Permissão negada para este status" });
+    }
+
+    const { data, error: updateError } = await supabase
+      .from("orders")
+      .update({ status, atualizado_em: new Date().toISOString() })
+      .eq("numero", numero)
+      .single();
+
+    if (updateError) throw updateError;
+
+    res.json({ message: "Status atualizado!", pedido: data });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Erro ao atualizar status" });
   }
 });
 
-// Listar pedidos
+// Listar pedidos (todos podem ver)
 app.get("/pedidos", autenticar, async (req, res) => {
   try {
-    const { data: pedidos } = await supabase
-      .from("orders")
-      .select(
-        `
-      *,
-      order_items(*)
-    `
-      )
-      .order("criado_em", { ascending: true });
-    res.json(pedidos);
-  } catch (error) {
-    console.error(error);
+    const { data: orders, error } = await supabase.from("orders").select("*");
+    if (error) throw error;
+    res.json(orders);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Erro ao listar pedidos" });
   }
 });
 
-// Iniciar servidor
-server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+// --- INICIAR SERVIDOR ---
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
