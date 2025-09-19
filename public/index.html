@@ -1,79 +1,54 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hamburguer CEC</title>
+    <title>App Hamburgueria</title>
     <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   </head>
   <body>
-    <div class="container">
-      <div class="header">
-        <h1>🍔 Sistema Hamburgueria</h1>
-        <p>Gerenciamento completo de pedidos</p>
+    <div id="login-panel">
+      <h2>Login</h2>
+      <input type="text" id="username" placeholder="Usuário" />
+      <input type="password" id="password" placeholder="Senha" />
+      <button id="login-btn">Entrar</button>
+      <p id="login-error" class="error"></p>
+    </div>
+
+    <div id="app-panel" style="display: none">
+      <h2>Bem-vindo, <span id="user-role"></span></h2>
+      <button id="logout-btn">Sair</button>
+
+      <div id="atendente-panel" class="panel" style="display: none">
+        <h3>Criar Pedido</h3>
+        <input type="text" id="cliente" placeholder="Nome do cliente" />
+        <input
+          type="number"
+          id="num-combos"
+          placeholder="Quantidade de combos"
+          min="1"
+        />
+        <div id="combos-container"></div>
+        <button id="criar-pedido-btn">Registrar Pedido</button>
       </div>
 
-      <div id="loginPanel">
-        <h2>Login</h2>
-        <input type="text" id="username" placeholder="Usuário" />
-        <input type="password" id="password" placeholder="Senha" />
-        <button id="btnLogin">Entrar</button>
-        <p id="loginError" style="color: red"></p>
+      <div id="cozinha-panel" class="panel" style="display: none">
+        <h3>Pedidos Recebidos</h3>
+        <div id="pedidos-cozinha"></div>
       </div>
 
-      <div id="mainPanel" style="display: none">
-        <button id="btnLogout">Sair</button>
-        <div class="user-selector">
-          <button class="user-btn active" onclick="switchPanel('atendente')">
-            📝 Atendente
-          </button>
-          <button class="user-btn" onclick="switchPanel('cozinha')">
-            👨‍🍳 Cozinha
-          </button>
-          <button class="user-btn" onclick="switchPanel('despachante')">
-            🚚 Despachante
-          </button>
-        </div>
+      <div id="despachante-panel" class="panel" style="display: none">
+        <h3>Pedidos Prontos</h3>
+        <div id="pedidos-despachante"></div>
+      </div>
 
-        <div id="atendente" class="panel active">
-          <h2>📝 Painel do Atendente</h2>
-          <form id="pedidoForm">
-            <input
-              type="text"
-              id="nomeCliente"
-              placeholder="Nome do cliente"
-              required
-            />
-            <input
-              type="number"
-              id="quantidadeCombos"
-              placeholder="Quantidade de combos"
-              min="1"
-              required
-            />
-            <select id="refrigerante">
-              <option value="Coca-Cola">Coca-Cola</option>
-              <option value="Coca-Zero">Coca-Zero</option>
-              <option value="Guarana">Guaraná</option>
-            </select>
-            <textarea id="observacoes" placeholder="Observações"></textarea>
-            <button type="submit">Registrar Pedido</button>
-          </form>
-        </div>
-
-        <div id="cozinha" class="panel">
-          <h2>👨‍🍳 Painel da Cozinha</h2>
-          <div id="pedidosCozinha"></div>
-        </div>
-
-        <div id="despachante" class="panel">
-          <h2>🚚 Painel do Despachante</h2>
-          <div id="pedidosDespachante"></div>
-        </div>
+      <div id="admin-panel" class="panel" style="display: none">
+        <h3>Admin Painel</h3>
+        <div id="pedidos-admin"></div>
       </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

@@ -1,134 +1,191 @@
 const socket = io();
+
 let token = null;
 let role = null;
 
 // Login
-document.getElementById("btnLogin").addEventListener("click", async () => {
+document.getElementById("login-btn").addEventListener("click", async () => {
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
 
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-  const data = await res.json();
-  if (res.ok) {
-    token = data.token;
-    role = data.role;
-    document.getElementById("loginPanel").style.display = "none";
-    document.getElementById("mainPanel").style.display = "block";
-    carregarPedidos();
-  } else {
-    document.getElementById("loginError").textContent = data.error;
+  try {
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      token = data.token;
+      role = data.role;
+      document.getElementById("login-panel").style.display = "none";
+      document.getElementById("app-panel").style.display = "block";
+      document.getElementById("user-role").textContent = role;
+
+      showPanel(role);
+      fetchPedidos();
+    } else {
+      document.getElementById("login-error").textContent = data.error;
+    }
+  } catch (err) {
+    console.error(err);
   }
 });
 
 // Logout
-document.getElementById("btnLogout").addEventListener("click", () => {
+document.getElementById("logout-btn").addEventListener("click", () => {
   token = null;
   role = null;
-  document.getElementById("mainPanel").style.display = "none";
-  document.getElementById("loginPanel").style.display = "block";
+  document.getElementById("app-panel").style.display = "none";
+  document.getElementById("login-panel").style.display = "block";
 });
 
-// Switch panel
-function switchPanel(panel) {
-  document
-    .querySelectorAll(".panel")
-    .forEach((p) => p.classList.remove("active"));
-  document.getElementById(panel).classList.add("active");
+// Exibir painel correto
+function showPanel(role) {
+  if (role === "atendente")
+    document.getElementById("atendente-panel").style.display = "block";
+  if (role === "cozinha")
+    document.getElementById("cozinha-panel").style.display = "block";
+  if (role === "despachante")
+    document.getElementById("despachante-panel").style.display = "block";
+  if (role === "admin")
+    document.getElementById("admin-panel").style.display = "block";
 }
 
-// Criar pedido
-document.getElementById("pedidoForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (role !== "atendente")
-    return alert("Somente atendente pode criar pedidos");
-
-  const pedido = {
-    cliente: document.getElementById("nomeCliente").value,
-    combos: document.getElementById("quantidadeCombos").value,
-    refrigerante: document.getElementById("refrigerante").value,
-    observacoes: document.getElementById("observacoes").value,
-  };
-
-  const res = await fetch("/pedidos", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token,
-    },
-    body: JSON.stringify(pedido),
-  });
-  if (res.ok) {
-    document.getElementById("pedidoForm").reset();
+// Criar combos inputs
+document.getElementById("num-combos").addEventListener("input", () => {
+  const container = document.getElementById("combos-container");
+  container.innerHTML = "";
+  const num = parseInt(document.getElementById("num-combos").value);
+  for (let i = 1; i <= num; i++) {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <input type="text" placeholder="Nome do Combo ${i}" class="combo-nome">
+      <select class="combo-refri">
+        <option value="Coca-Cola">Coca-Cola</option>
+        <option value="Coca-Zero">Coca-Zero</option>
+        <option value="Guaraná">Guaraná</option>
+      </select>
+    `;
+    container.appendChild(div);
   }
 });
 
-// Carregar pedidos iniciais
-async function carregarPedidos() {
-  const res = await fetch("/pedidos", {
-    headers: { Authorization: "Bearer " + token },
+// Criar pedido
+document
+  .getElementById("criar-pedido-btn")
+  .addEventListener("click", async () => {
+    const cliente = document.getElementById("cliente").value;
+    const combosDiv = document.querySelectorAll("#combos-container div");
+    const combos = Array.from(combosDiv).map((div) => ({
+      nomeCombo: div.querySelector(".combo-nome").value,
+      refrigerante: div.querySelector(".combo-refri").value,
+    }));
+
+    try {
+      const res = await fetch("/pedidos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ cliente, combos }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("Pedido registrado!");
+        fetchPedidos();
+      } else alert(data.error);
+    } catch (err) {
+      console.error(err);
+    }
   });
-  const pedidos = await res.json();
-  atualizarPedidos(pedidos);
+
+// Buscar pedidos
+async function fetchPedidos() {
+  try {
+    const res = await fetch("/pedidos", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const pedidos = await res.json();
+    renderPedidos(pedidos);
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-// Atualizar pedidos na tela
-function atualizarPedidos(pedidos) {
-  const pedidosCozinha = document.getElementById("pedidosCozinha");
-  const pedidosDespachante = document.getElementById("pedidosDespachante");
-  pedidosCozinha.innerHTML = "";
-  pedidosDespachante.innerHTML = "";
+// Renderizar pedidos
+function renderPedidos(pedidos) {
+  const cozinhaDiv = document.getElementById("pedidos-cozinha");
+  const despachanteDiv = document.getElementById("pedidos-despachante");
+  const adminDiv = document.getElementById("pedidos-admin");
+
+  if (cozinhaDiv) cozinhaDiv.innerHTML = "";
+  if (despachanteDiv) despachanteDiv.innerHTML = "";
+  if (adminDiv) adminDiv.innerHTML = "";
 
   pedidos.forEach((p) => {
-    const div = document.createElement("div");
-    div.className = "pedido";
-    div.innerHTML = `<strong>#${p.numero} - ${p.cliente}</strong> | ${p.combos} combos | ${p.refrigerante} | ${p.status}`;
+    const combos = JSON.parse(p.combos);
+    const text = `Pedido #${p.numero} - ${p.cliente} - ${combos.map((c) => `${c.nomeCombo} (${c.refrigerante})`).join(", ")} - Status: ${p.status}`;
 
-    // Cozinha
-    if (role === "cozinha") {
+    if (
+      role === "cozinha" &&
+      (p.status === "pendente" || p.status === "em preparo")
+    ) {
+      const div = document.createElement("div");
+      div.textContent = text;
       if (p.status === "pendente") {
-        const btnPreparo = document.createElement("button");
-        btnPreparo.textContent = "Em preparo";
-        btnPreparo.onclick = () => atualizarStatus(p.numero, "preparo");
-        div.appendChild(btnPreparo);
+        const btn = document.createElement("button");
+        btn.textContent = "Em preparo";
+        btn.onclick = () => atualizarStatus(p.numero, "em preparo");
+        div.appendChild(btn);
       }
-      if (p.status === "preparo") {
-        const btnConcluido = document.createElement("button");
-        btnConcluido.textContent = "Concluído";
-        btnConcluido.onclick = () => atualizarStatus(p.numero, "concluido");
-        div.appendChild(btnConcluido);
+      if (p.status === "em preparo") {
+        const btn = document.createElement("button");
+        btn.textContent = "Concluído";
+        btn.onclick = () => atualizarStatus(p.numero, "concluido");
+        div.appendChild(btn);
       }
-      pedidosCozinha.appendChild(div);
+      cozinhaDiv.appendChild(div);
     }
 
-    // Despachante
-    if (role === "despachante") {
-      if (p.status === "concluido") {
-        const btnEntregar = document.createElement("button");
-        btnEntregar.textContent = "Entregue";
-        btnEntregar.onclick = () => atualizarStatus(p.numero, "entregue");
-        div.appendChild(btnEntregar);
-      }
-      pedidosDespachante.appendChild(div);
+    if (role === "despachante" && p.status === "concluido") {
+      const div = document.createElement("div");
+      div.textContent = text;
+      const btn = document.createElement("button");
+      btn.textContent = "Entregue";
+      btn.onclick = () => atualizarStatus(p.numero, "entregue");
+      div.appendChild(btn);
+      despachanteDiv.appendChild(div);
+    }
+
+    if (role === "admin") {
+      const div = document.createElement("div");
+      div.textContent = text;
+      adminDiv.appendChild(div);
     }
   });
 }
 
-// Atualizar status do pedido
+// Atualizar status
 async function atualizarStatus(numero, status) {
-  await fetch(`/pedidos/${numero}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token,
-    },
-    body: JSON.stringify({ status }),
-  });
+  try {
+    const res = await fetch(`/pedidos/${numero}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+    const data = await res.json();
+    if (res.ok) fetchPedidos();
+    else alert(data.error);
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-// Socket.IO eventos em tempo real
-socket.on("novoPedido", (pedido) => carregarPedidos());
-socket.on("atualizarPedido", (pedido) => carregarPedidos());
+// Socket.IO eventos
+socket.on("novo-pedido", fetchPedidos);
+socket.on("atualizacao-pedido", fetchPedidos);

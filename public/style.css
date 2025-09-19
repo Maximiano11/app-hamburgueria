@@ -6,162 +6,111 @@
   font-family: Arial, sans-serif;
 }
 
-/* Container principal */
-.container {
-  max-width: 900px;
-  margin: 20px auto;
+body {
+  background-color: #f4f4f4;
+  color: #333;
   padding: 20px;
-  background-color: #fff9f1;
+}
+
+/* Login */
+#error,
+.error {
+  color: red;
+  margin-top: 10px;
+}
+
+#login-panel {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 20px;
+  background-color: #fff;
   border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Cabeçalho */
-.header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.header h1 {
-  font-size: 2.2em;
-  color: #ff5722;
-}
-
-.header p {
-  font-size: 1em;
-  color: #555;
-}
-
-/* Painel de login */
-#loginPanel {
-  text-align: center;
-}
-
-#loginPanel input {
+#login-panel input {
   display: block;
-  margin: 10px auto;
+  width: 100%;
+  margin: 10px 0;
   padding: 10px;
-  width: 80%;
   border-radius: 5px;
   border: 1px solid #ccc;
 }
 
-#loginPanel button {
-  padding: 10px 20px;
-  background-color: #ff5722;
+#login-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
   color: #fff;
   border: none;
   border-radius: 5px;
   cursor: pointer;
 }
 
-#loginPanel button:hover {
-  background-color: #e64a19;
+#login-btn:hover {
+  background-color: #0056b3;
 }
 
-/* Painel principal */
-#mainPanel button#btnLogout {
-  float: right;
+/* App panel */
+#app-panel {
+  max-width: 800px;
+  margin: 20px auto;
+}
+
+#app-panel h2 {
+  margin-bottom: 20px;
+}
+
+button {
+  cursor: pointer;
+  margin-top: 5px;
   padding: 5px 10px;
-  background-color: #555;
-  color: #fff;
-  border: none;
   border-radius: 5px;
-  cursor: pointer;
-}
-
-#mainPanel button#btnLogout:hover {
-  background-color: #333;
-}
-
-/* Botões de alternar painel */
-.user-selector {
-  margin: 20px 0;
-  text-align: center;
-}
-
-.user-btn {
-  padding: 10px 20px;
-  margin: 0 5px;
   border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  background-color: #ffccbc;
-  color: #333;
+  background-color: #007bff;
+  color: #fff;
 }
 
-.user-btn.active {
-  background-color: #ff5722;
-  color: #fff;
+button:hover {
+  background-color: #0056b3;
 }
 
 /* Painéis */
 .panel {
-  display: none;
-  margin-top: 20px;
+  background-color: #fff;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
 }
 
-.panel.active {
-  display: block;
+/* Inputs de combos */
+#combos-container div {
+  margin-bottom: 10px;
 }
 
-/* Formulário de pedido */
-#pedidoForm input,
-#pedidoForm select,
-#pedidoForm textarea,
-#pedidoForm button {
-  display: block;
-  margin: 10px 0;
-  padding: 10px;
-  width: 100%;
+#combos-container input,
+#combos-container select {
+  padding: 5px;
+  margin-right: 5px;
   border-radius: 5px;
   border: 1px solid #ccc;
 }
 
-#pedidoForm button {
-  background-color: #ff5722;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-}
-
-#pedidoForm button:hover {
-  background-color: #e64a19;
-}
-
-/* Lista de pedidos */
-.pedido {
-  background-color: #fff3e0;
-  border: 1px solid #ffccbc;
-  padding: 10px;
+/* Painel de pedidos */
+#pedidos-cozinha div,
+#pedidos-despachante div,
+#pedidos-admin div {
+  border: 1px solid #ccc;
+  padding: 8px;
+  margin-bottom: 8px;
   border-radius: 5px;
-  margin-bottom: 10px;
+  background-color: #f9f9f9;
 }
 
-.pedido button {
+#pedidos-cozinha button,
+#pedidos-despachante button {
   margin-left: 10px;
-  padding: 5px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  background-color: #ff9800;
-  color: #fff;
-}
-
-.pedido button:hover {
-  background-color: #f57c00;
-}
-
-/* Responsivo */
-@media (max-width: 600px) {
-  .container {
-    padding: 10px;
-  }
-
-  #loginPanel input,
-  #pedidoForm input,
-  #pedidoForm select,
-  #pedidoForm textarea {
-    width: 95%;
-  }
+  padding: 3px 6px;
+  font-size: 0.9em;
 }

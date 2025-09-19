@@ -1,36 +1,37 @@
+// server.js
 const express = require("express");
-const http = require("http");
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const { createClient } = require("@supabase/supabase-js");
+const http = require("http");
 const { Server } = require("socket.io");
 
+// Configurações
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" },
-});
-
+const io = new Server(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = "hamburguer-cec"; // trocar por env var em produção
+const SECRET_KEY = "hamburguer-cec"; // coloque em variável de ambiente em produção
 
+// Supabase
+const SUPABASE_URL = "https://krybnbkjuwhpjhykfjeb.supabase.co";
+const SUPABASE_KEY = "maximianuss445229980"; // use anon/public key para client ou service_role para server
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Middlewares
 app.use(bodyParser.json());
 app.use(cors());
-app.use(express.static("public")); // pasta com index.html, style.css e script.js
+app.use(express.static("public"));
 
-// Usuários e roles
+// ----- AUTENTICAÇÃO -----
 const users = [
   { username: "atendente1", password: "123", role: "atendente" },
   { username: "cozinha1", password: "123", role: "cozinha" },
   { username: "despachante1", password: "123", role: "despachante" },
+  { username: "admin", password: "admin123", role: "admin" },
 ];
 
-// Pedidos em memória
-let pedidos = [];
-let proximoNumero = 1;
-
-// ----- ROTAS -----
-// Login
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   const user = users.find(
@@ -47,11 +48,11 @@ app.post("/login", (req, res) => {
   res.json({ token, role: user.role });
 });
 
-// Middleware de autenticação
 function autenticar(req, res, next) {
   const authHeader = req.headers["authorization"];
   if (!authHeader)
     return res.status(401).json({ error: "Token não fornecido" });
+
   const token = authHeader.split(" ")[1];
   jwt.verify(token, SECRET_KEY, (err, user) => {
     if (err) return res.status(403).json({ error: "Token inválido" });
@@ -60,58 +61,99 @@ function autenticar(req, res, next) {
   });
 }
 
-// Criar pedido (somente atendente)
-app.post("/pedidos", autenticar, (req, res) => {
-  if (req.user.role !== "atendente")
+// ----- PEDIDOS -----
+async function criarPedidoDB(pedido) {
+  const { data, error } = await supabase.from("pedidos").insert([pedido]);
+  if (error) throw error;
+  return data[0];
+}
+
+async function atualizarPedidoDB(numero, status) {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .update({ status, atualizado_em: new Date() })
+    .eq("numero", numero);
+  if (error) throw error;
+  return data[0];
+}
+
+async function listarPedidosDB() {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select("*")
+    .order("criado_em", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+// ----- ROTAS -----
+
+// Criar pedido (apenas atendente)
+app.post("/pedidos", autenticar, async (req, res) => {
+  if (!["atendente", "admin"].includes(req.user.role))
     return res.status(403).json({ error: "Permissão negada" });
 
-  const { cliente, combos, refrigerante, observacoes } = req.body;
-  const pedido = {
-    numero: proximoNumero++,
-    cliente,
-    combos,
-    refrigerante,
-    observacoes,
-    status: "pendente",
-    criadoEm: new Date().toLocaleString(),
-  };
-  pedidos.push(pedido);
-  io.emit("novoPedido", pedido); // envia para todos os clientes em tempo real
-  res.json({ message: "Pedido criado com sucesso!", pedido });
+  try {
+    const { cliente, combos } = req.body;
+    // combos = [{ nomeCombo, refrigerante }] array
+    const pedido = {
+      cliente,
+      combos: JSON.stringify(combos),
+      status: "pendente",
+      criado_em: new Date(),
+    };
+    const novoPedido = await criarPedidoDB(pedido);
+    io.emit("novo-pedido", novoPedido);
+    res.json({ message: "Pedido criado com sucesso!", pedido: novoPedido });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao criar pedido" });
+  }
 });
 
-// Atualizar status (somente cozinha e despachante)
-app.put("/pedidos/:numero", autenticar, (req, res) => {
+// Atualizar status (cozinha ou despachante)
+app.put("/pedidos/:numero", autenticar, async (req, res) => {
   const { numero } = req.params;
   const { status } = req.body;
-  const pedido = pedidos.find((p) => p.numero == numero);
-  if (!pedido) return res.status(404).json({ error: "Pedido não encontrado" });
 
-  if (req.user.role === "cozinha") {
-    if (status !== "preparo" && status !== "concluido")
-      return res.status(403).json({ error: "Permissão negada" });
-  } else if (req.user.role === "despachante") {
-    if (status !== "entregue")
-      return res.status(403).json({ error: "Permissão negada" });
-  } else {
+  // Cozinha só pode colocar "em preparo" ou "concluido" no painel dela
+  if (
+    req.user.role === "cozinha" &&
+    !["em preparo", "concluido"].includes(status)
+  )
     return res.status(403).json({ error: "Permissão negada" });
-  }
 
-  pedido.status = status;
-  pedido.atualizadoEm = new Date().toLocaleString();
-  io.emit("atualizarPedido", pedido); // atualiza todos os clientes
-  res.json({ message: "Status atualizado!", pedido });
+  // Despachante só pode colocar "entregue"
+  if (req.user.role === "despachante" && status !== "entregue")
+    return res.status(403).json({ error: "Permissão negada" });
+
+  try {
+    const pedidoAtualizado = await atualizarPedidoDB(numero, status);
+    io.emit("atualizacao-pedido", pedidoAtualizado);
+    res.json({ message: "Status atualizado!", pedido: pedidoAtualizado });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao atualizar status" });
+  }
 });
 
 // Listar pedidos (todos)
-app.get("/pedidos", autenticar, (req, res) => {
-  res.json(pedidos);
+app.get("/pedidos", autenticar, async (req, res) => {
+  try {
+    const pedidos = await listarPedidosDB();
+    res.json(pedidos);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao listar pedidos" });
+  }
 });
 
-// Socket.IO conexão
+// ----- SOCKET.IO -----
 io.on("connection", (socket) => {
-  console.log("Usuário conectado:", socket.id);
+  console.log("Novo cliente conectado:", socket.id);
 });
 
-// Iniciar servidor
-server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+// ----- INICIAR SERVIDOR -----
+server.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
