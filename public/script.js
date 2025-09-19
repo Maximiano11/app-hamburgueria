@@ -1,192 +1,193 @@
-const socket = io(); // conecta ao servidor Socket.IO
+const socket = io(); // conecta ao Socket.IO
 
-// Pegando elementos do DOM
+let token = null;
+let role = null;
+
+// Elementos
 const loginPanel = document.getElementById("login-panel");
 const appPanel = document.getElementById("app-panel");
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
 const loginError = document.getElementById("login-error");
-const btnLogout = document.getElementById("btnLogout");
 
-const inputUsername = document.getElementById("username");
-const inputPassword = document.getElementById("password");
-const btnLogin = document.getElementById("btnLogin");
+const userRoleSpan = document.getElementById("user-role");
+const atendentePanel = document.getElementById("atendente-panel");
+const createOrderBtn = document.getElementById("create-order");
+const pedidosList = document.getElementById("pedidos-list");
+const combosInput = document.getElementById("combos");
+const clienteInput = document.getElementById("cliente");
+const refrigerantesContainer = document.getElementById(
+  "refrigerantes-container"
+);
 
-const pedidosContainer = document.getElementById("pedidos-container");
-const pedidoForm = document.getElementById("pedido-form");
-const inputCliente = document.getElementById("cliente");
-const inputCombos = document.getElementById("combos");
+const REFRIGERANTES = ["Coca-Cola", "Coca-Zero", "Guaraná"];
 
-// Guardar usuário logado
-let currentUser = null;
-
-// --- Login ---
-btnLogin.addEventListener("click", async () => {
-  const username = inputUsername.value;
-  const password = inputPassword.value;
+// LOGIN
+loginBtn.addEventListener("click", async () => {
+  const username = usernameInput.value;
+  const password = passwordInput.value;
 
   try {
-    const res = await fetch("/login", {
+    const res = await fetch("https://seu-backend.onrender.com/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
-
     if (res.ok) {
-      currentUser = data;
-      loginPanel.style.display = "none";
-      appPanel.style.display = "block";
-      renderPedidoForm();
-      socket.emit("join", data.role);
+      token = data.token;
+      role = data.role;
+      afterLogin();
     } else {
       loginError.textContent = data.error;
     }
   } catch (err) {
-    console.error(err);
+    loginError.textContent = "Erro ao conectar ao servidor.";
   }
 });
 
-// --- Logout ---
-btnLogout.addEventListener("click", () => {
-  currentUser = null;
-  loginPanel.style.display = "block";
-  appPanel.style.display = "none";
-});
+function afterLogin() {
+  loginPanel.classList.add("hidden");
+  appPanel.classList.remove("hidden");
+  userRoleSpan.textContent = role;
 
-// --- Renderiza formulário de pedido só para atendente ---
-function renderPedidoForm() {
-  if (currentUser.role === "atendente" || currentUser.role === "admin") {
-    pedidoForm.style.display = "block";
-  } else {
-    pedidoForm.style.display = "none";
+  if (role === "atendente" || role === "admin") {
+    atendentePanel.classList.remove("hidden");
   }
+
+  fetchPedidos();
 }
 
-// --- Criar pedido ---
-pedidoForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const combos = parseInt(inputCombos.value);
-  const refrigerantes = [];
+// LOGOUT
+logoutBtn.addEventListener("click", () => {
+  token = null;
+  role = null;
+  appPanel.classList.add("hidden");
+  loginPanel.classList.remove("hidden");
+});
 
-  for (let i = 0; i < combos; i++) {
-    const ref = prompt(
-      `Escolha o refrigerante para o combo ${i + 1} (Coca-Cola, Coca-Zero, Guaraná)`
-    );
-    refrigerantes.push(ref);
+// CRIAR REFRIGERANTES DINÂMICOS
+combosInput.addEventListener("input", () => {
+  const quantidade = parseInt(combosInput.value) || 0;
+  refrigerantesContainer.innerHTML = "";
+  for (let i = 0; i < quantidade; i++) {
+    const select = document.createElement("select");
+    select.innerHTML = REFRIGERANTES.map(
+      (r) => `<option value="${r}">${r}</option>`
+    ).join("");
+    select.dataset.index = i;
+    refrigerantesContainer.appendChild(select);
   }
+});
 
-  const pedidoData = {
-    cliente: inputCliente.value,
-    combos,
-    refrigerantes,
-  };
+// CRIAR PEDIDO
+createOrderBtn.addEventListener("click", async () => {
+  const cliente = clienteInput.value;
+  const combos = parseInt(combosInput.value);
+  const refrigerantes = Array.from(
+    refrigerantesContainer.querySelectorAll("select")
+  ).map((s) => s.value);
+
+  if (!cliente || combos < 1) return alert("Preencha todos os campos");
 
   try {
-    const res = await fetch("/pedidos", {
+    const res = await fetch("https://seu-backend.onrender.com/pedidos", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${currentUser.token}`,
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(pedidoData),
+      body: JSON.stringify({ cliente, combos, refrigerantes }),
     });
     const data = await res.json();
     if (res.ok) {
-      socket.emit("novoPedido", data.pedido);
-      pedidoForm.reset();
+      socket.emit("pedidoCriado", data.pedido);
+      clienteInput.value = "";
+      combosInput.value = "";
+      refrigerantesContainer.innerHTML = "";
     } else {
       alert(data.error);
     }
   } catch (err) {
-    console.error(err);
+    alert("Erro ao criar pedido.");
   }
 });
 
-// --- Renderizar pedidos ---
-function renderPedidos(pedidos) {
-  pedidosContainer.innerHTML = "";
+// BUSCAR PEDIDOS
+async function fetchPedidos() {
+  try {
+    const res = await fetch("https://seu-backend.onrender.com/pedidos", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const pedidos = await res.json();
+    renderPedidos(pedidos);
+  } catch (err) {
+    console.error(err);
+  }
+}
 
+// RENDER PEDIDOS
+function renderPedidos(pedidos) {
+  pedidosList.innerHTML = "";
   pedidos.forEach((p) => {
     const card = document.createElement("div");
-    card.className = `pedido pedido-status-${p.status.replace(" ", "-")}`;
+    card.classList.add("order-card");
+    card.classList.add(p.status.replace(" ", "-"));
     card.innerHTML = `
-      <strong>Pedido #${p.numero} - ${p.cliente}</strong>
+      <p><strong>#${p.numero}</strong> - ${p.cliente}</p>
       <p>Status: ${p.status}</p>
-      <p>Combos: ${p.combos}</p>
-      <p>Refrigerantes: ${p.refrigerantes.join(", ")}</p>
+      <p>Itens: ${p.refrigerantes?.join(", ") || ""}</p>
     `;
 
-    // Botões de ação para cozinha e despachante
-    if (
-      (currentUser.role === "cozinha" || currentUser.role === "admin") &&
-      p.status === "pendente"
-    ) {
-      const btnPreparar = document.createElement("button");
-      btnPreparar.textContent = "Em Preparo";
-      btnPreparar.onclick = () => atualizarStatus(p.numero, "em preparo");
-      card.appendChild(btnPreparar);
+    if ((role === "cozinha" || role === "admin") && p.status === "pendente") {
+      const btn = document.createElement("button");
+      btn.textContent = "Em preparo";
+      btn.addEventListener("click", () => updateStatus(p.id, "preparing"));
+      card.appendChild(btn);
+    }
+
+    if ((role === "cozinha" || role === "admin") && p.status === "preparing") {
+      const btn = document.createElement("button");
+      btn.textContent = "Concluído";
+      btn.addEventListener("click", () => updateStatus(p.id, "completed"));
+      card.appendChild(btn);
     }
 
     if (
-      (currentUser.role === "cozinha" || currentUser.role === "admin") &&
-      p.status === "em preparo"
+      (role === "despachante" || role === "admin") &&
+      p.status === "completed"
     ) {
-      const btnConcluir = document.createElement("button");
-      btnConcluir.textContent = "Concluído";
-      btnConcluir.onclick = () => atualizarStatus(p.numero, "concluído");
-      card.appendChild(btnConcluir);
+      const btn = document.createElement("button");
+      btn.textContent = "Entregue";
+      btn.addEventListener("click", () => updateStatus(p.id, "delivered"));
+      card.appendChild(btn);
     }
 
-    if (
-      (currentUser.role === "despachante" || currentUser.role === "admin") &&
-      p.status === "concluído"
-    ) {
-      const btnEntregar = document.createElement("button");
-      btnEntregar.textContent = "Entregue";
-      btnEntregar.onclick = () => atualizarStatus(p.numero, "entregue");
-      card.appendChild(btnEntregar);
-    }
-
-    pedidosContainer.appendChild(card);
+    pedidosList.appendChild(card);
   });
 }
 
-// --- Atualizar status ---
-async function atualizarStatus(numero, status) {
+// ATUALIZAR STATUS
+async function updateStatus(id, status) {
   try {
-    const res = await fetch(`/pedidos/${numero}`, {
+    const res = await fetch(`https://seu-backend.onrender.com/pedidos/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${currentUser.token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ status }),
     });
     const data = await res.json();
-    if (res.ok) {
-      socket.emit("atualizarPedido", data.pedido);
-    } else {
-      alert(data.error);
-    }
+    if (res.ok) socket.emit("pedidoAtualizado", data.pedido);
+    else alert(data.error);
   } catch (err) {
-    console.error(err);
+    alert("Erro ao atualizar status");
   }
 }
 
-// --- Socket.IO eventos ---
-socket.on("atualizarPedidos", (pedidos) => renderPedidos(pedidos));
-socket.on("novoPedido", (pedido) => {
-  pedidosContainer.appendChild(createPedidoCard(pedido));
-});
-
-// --- Função auxiliar para criar card individual (usado pelo Socket) ---
-function createPedidoCard(p) {
-  const card = document.createElement("div");
-  card.className = `pedido pedido-status-${p.status.replace(" ", "-")}`;
-  card.innerHTML = `
-    <strong>Pedido #${p.numero} - ${p.cliente}</strong>
-    <p>Status: ${p.status}</p>
-    <p>Combos: ${p.combos}</p>
-    <p>Refrigerantes: ${p.refrigerantes.join(", ")}</p>
-  `;
-  return card;
-}
+// SOCKET.IO
+socket.on("pedidoCriado", (pedido) => fetchPedidos());
+socket.on("pedidoAtualizado", (pedido) => fetchPedidos());

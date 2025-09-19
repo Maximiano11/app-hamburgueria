@@ -5,51 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>App Hamburgueria</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   </head>
   <body>
     <div id="login-panel">
-      <h2>Login</h2>
+      <h1>Login</h1>
       <input type="text" id="username" placeholder="Usuário" />
       <input type="password" id="password" placeholder="Senha" />
-      <button id="btnLogin">Entrar</button>
-      <p id="login-error"></p>
+      <button id="loginBtn">Entrar</button>
+      <p id="login-error" class="error"></p>
     </div>
 
-    <div id="app-panel" style="display: none">
-      <h2>Bem-vindo, <span id="user-role"></span></h2>
-      <button id="btnLogout">Sair</button>
+    <div id="app-panel" class="hidden">
+      <div class="header">
+        <h1>Bem-vindo, <span id="user-role"></span></h1>
+        <button id="logoutBtn">Sair</button>
+      </div>
 
-      <!-- Atendente -->
-      <div id="atendente-panel" class="panel" style="display: none">
-        <h3>Registrar Pedido</h3>
+      <div id="atendente-panel" class="hidden">
+        <h2>Registrar Pedido</h2>
         <input type="text" id="cliente" placeholder="Nome do cliente" />
         <input
           type="number"
-          id="quantidade"
+          id="combos"
           placeholder="Quantidade de combos"
           min="1"
         />
         <div id="refrigerantes-container"></div>
-        <button id="btnCriarPedido">Criar Pedido</button>
+        <button id="create-order">Criar Pedido</button>
       </div>
 
-      <!-- Cozinha -->
-      <div id="cozinha-panel" class="panel" style="display: none">
-        <h3>Pedidos na Cozinha</h3>
-        <div id="cozinha-pedidos"></div>
-      </div>
-
-      <!-- Despachante -->
-      <div id="despachante-panel" class="panel" style="display: none">
-        <h3>Pedidos para Despacho</h3>
-        <div id="despachante-pedidos"></div>
-      </div>
-
-      <!-- Admin -->
-      <div id="admin-panel" class="panel" style="display: none">
-        <h3>Todos os Pedidos</h3>
-        <div id="admin-pedidos"></div>
+      <div id="pedidos-panel">
+        <h2>Pedidos</h2>
+        <div id="pedidos-list"></div>
       </div>
     </div>
 
